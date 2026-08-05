@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>PharmaBot AI - Multilingual Patient Counselling</title>
 
     <!-- PDF Library -->
@@ -26,7 +26,6 @@
             padding: 20px;
         }
 
-        /* ---- LANGUAGE SELECTOR OVERLAY ---- */
         #langOverlay {
             position: fixed;
             inset: 0;
@@ -138,7 +137,6 @@
             margin-top: 2px;
         }
 
-        /* ---- MAIN APP ---- */
         #app {
             width: 100%;
             max-width: 1100px;
@@ -193,7 +191,6 @@
             flex-wrap: wrap;
         }
 
-        /* ---- NEW: Language selector buttons ---- */
         .lang-selector {
             display: flex;
             gap: 4px;
@@ -227,16 +224,11 @@
         .lang-selector .lang-btn.active-lang {
             background: white;
             color: #0a2e4b;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
 
         .lang-selector .lang-btn .flag {
             font-size: 14px;
-        }
-
-        /* ---- Existing header items ---- */
-        .header-actions .lang-badge {
-            display: none; /* Hide old badge, we have direct buttons now */
         }
 
         .pdf-btn {
@@ -332,7 +324,6 @@
             }
         }
 
-        /* ---- DASHBOARD ---- */
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -515,7 +506,6 @@
             display: block;
         }
 
-        /* ---- INPUT AREA ---- */
         .input-area {
             padding: 12px 20px 18px 20px;
             background: white;
@@ -603,6 +593,7 @@
             border: none;
             cursor: pointer;
             flex-shrink: 0;
+            position: relative;
         }
 
         .input-area .mic-btn:hover {
@@ -614,6 +605,12 @@
             background: #ef4444;
             color: white;
             animation: pulseMic 1.2s infinite;
+        }
+
+        .input-area .mic-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
         }
 
         @keyframes pulseMic {
@@ -630,7 +627,16 @@
             font-size: 12px;
             color: #64748b;
             padding: 0 4px;
-            min-width: 60px;
+            min-width: 70px;
+            text-align: center;
+        }
+
+        .mic-status.error {
+            color: #ef4444;
+        }
+
+        .mic-status.success {
+            color: #22c55e;
         }
 
         .typing-indicator {
@@ -681,7 +687,54 @@
             display: none !important;
         }
 
-        /* ---- RESPONSIVE ---- */
+        .speak-dashboard-btn {
+            margin-top: 16px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .speak-dashboard-btn .speak-btn {
+            background: #1a5276;
+            color: white;
+            border: none;
+            padding: 8px 24px;
+            border-radius: 30px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(26, 82, 118, 0.2);
+        }
+
+        .speak-dashboard-btn .speak-btn:hover {
+            background: #0a2e4b;
+            transform: scale(1.02);
+        }
+
+        .speak-dashboard-btn .speak-btn:active {
+            transform: scale(0.95);
+        }
+
+        .speak-dashboard-btn .speak-btn.speaking {
+            background: #e67e22;
+            animation: pulseSpeak 1s infinite;
+        }
+
+        @keyframes pulseSpeak {
+            0% {
+                box-shadow: 0 0 0 0 rgba(230, 126, 34, 0.5);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(230, 126, 34, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(230, 126, 34, 0);
+            }
+        }
+
         @media (max-width: 700px) {
             .dashboard-grid {
                 grid-template-columns: 1fr 1fr;
@@ -694,9 +747,6 @@
             }
             .message {
                 max-width: 95%;
-            }
-            .header-actions .lang-badge {
-                display: none;
             }
             .lang-box {
                 padding: 32px 20px 28px;
@@ -738,6 +788,10 @@
             .lang-selector .lang-btn .flag {
                 font-size: 12px;
             }
+            .mic-status {
+                min-width: 50px;
+                font-size: 11px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -756,6 +810,16 @@
             .lang-selector .lang-btn .label-text {
                 display: none;
             }
+            .input-area .mic-btn {
+                width: 38px;
+                height: 38px;
+                font-size: 14px;
+                padding: 8px;
+            }
+            .mic-status {
+                min-width: 40px;
+                font-size: 10px;
+            }
         }
     </style>
 </head>
@@ -770,14 +834,17 @@
             <p id="langSubText">Select your preferred language for the entire chat experience.</p>
             <div class="lang-options">
                 <div class="lang-option" data-lang="en">
+                    <span class="lang-flag">🇬🇧</span>
                     <span class="lang-label">English</span>
                     <span class="lang-sub">English</span>
                 </div>
                 <div class="lang-option" data-lang="ur">
+                    <span class="lang-flag">🇵🇰</span>
                     <span class="lang-label">اردو</span>
                     <span class="lang-sub">Urdu</span>
                 </div>
                 <div class="lang-option" data-lang="sd">
+                    <span class="lang-flag">🇵🇰</span>
                     <span class="lang-label">سنڌي</span>
                     <span class="lang-sub">Sindhi</span>
                 </div>
@@ -795,15 +862,15 @@
             <div class="header-actions">
                 <div class="lang-selector" id="langSelector">
                     <button class="lang-btn active-lang" data-lang="en">
-                        <span class="flag">english</span>
+                        <span class="flag">🇬🇧</span>
                         <span class="label-text">English</span>
                     </button>
                     <button class="lang-btn" data-lang="ur">
-                        <span class="flag">urdu</span>
+                        <span class="flag">🇵🇰</span>
                         <span class="label-text">Urdu</span>
                     </button>
                     <button class="lang-btn" data-lang="sd">
-                        <span class="flag">sindhi</span>
+                        <span class="flag">🇵🇰</span>
                         <span class="label-text">Sindhi</span>
                     </button>
                 </div>
@@ -816,7 +883,7 @@
         <div class="input-area">
             <div class="input-row">
                 <input type="text" id="userInput" placeholder="Type your message..." autofocus>
-                <button class="mic-btn" id="micBtn" title="Click to record voice">🎤</button>
+                <button class="mic-btn" id="micBtn" title="Tap to speak">🎤</button>
                 <span class="mic-status" id="micStatus">⚪</span>
             </div>
             <div class="btn-group">
@@ -838,7 +905,6 @@
             SD: 'sd'
         };
 
-        // ----- UI translations -----
         const UI = {
             en: {
                 appTitle: 'PharmaBot AI',
@@ -847,9 +913,11 @@
                 badgeLabel: 'English',
                 placeholder: 'Type your message...',
                 sendBtn: 'Send →',
-                micStatusIdle: '⚪',
+                micStatusIdle: '⚪ Tap mic to speak',
                 micStatusListening: '🔴 Listening...',
                 micStatusDetected: '✅ Detected',
+                micStatusNoSupport: '❌ Not supported',
+                micStatusPermission: '🔇 Allow mic access',
                 botLabel: '💊 PharmaBot',
                 userLabel: '👤 You',
                 welcome: `👋 <strong>Hi, how may I help you today?</strong><br>Which medicine do you need help with?<br><span style="font-size:13px; color:#64748b;">(Available: Panadol, Augmentin, Centrum)</span>`,
@@ -925,9 +993,11 @@
                 badgeLabel: 'اردو',
                 placeholder: 'اپنا پیغام ٹائپ کریں...',
                 sendBtn: 'بھیجیں →',
-                micStatusIdle: '⚪',
+                micStatusIdle: '⚪ مائک کو تھپتھپائیں',
                 micStatusListening: '🔴 سن رہا ہے...',
                 micStatusDetected: '✅ دریافت ہوا',
+                micStatusNoSupport: '❌ معاونت نہیں',
+                micStatusPermission: '🔇 مائک کی اجازت دیں',
                 botLabel: '💊 فارمابوٹ',
                 userLabel: '👤 آپ',
                 welcome: `👋 <strong>آج میں آپ کی کیسے مدد کر سکتا ہوں؟</strong><br>آپ کو کس دوا کے بارے میں معلومات چاہیے؟<br><span style="font-size:13px; color:#64748b;">(دستیاب: پیناڈول، آگمینٹن، سینٹرم)</span>`,
@@ -1003,9 +1073,11 @@
                 badgeLabel: 'سنڌي',
                 placeholder: 'پنهنجو پيغام ٽائيپ ڪريو...',
                 sendBtn: 'موڪليو →',
-                micStatusIdle: '⚪',
+                micStatusIdle: '⚪ مائڪ تي ٽيپ ڪريو',
                 micStatusListening: '🔴 ٻڌي رهيو آهي...',
                 micStatusDetected: '✅ معلوم ٿيو',
+                micStatusNoSupport: '❌ سپورٽ نه آهي',
+                micStatusPermission: '🔇 مائڪ جي اجازت ڏيو',
                 botLabel: '💊 فارمابوٽ',
                 userLabel: '👤 توهان',
                 welcome: `👋 <strong>سلام، اڄ آئون توهان جي ڪيئن مدد ڪري سگهان ٿو؟</strong><br>توهان کي ڪهڙي دوا بابت معلومات گهرجي؟<br><span style="font-size:13px; color:#64748b;">(دستياب: پيناڊول، آگمينٽن، سينٽرم)</span>`,
@@ -1076,9 +1148,8 @@
             }
         };
 
-        // ----- MEDICINE DATA translations -----
+        // ----- MEDICINE DATA (shortened for brevity, kept from original) -----
         const MEDICINE_DATA = {
-
             panadol: {
                 en: {
                     name: 'Panadol',
@@ -1096,9 +1167,9 @@
                     interactions: '• <strong>Flucloxacillin (antibiotic):</strong> rare but serious, can cause a dangerous acid imbalance in the blood.<br>• <strong>Warfarin/blood thinners:</strong> occasional doses are fine, daily regular use raises bleeding risk.<br>• <strong>Metoclopramide, domperidone (anti‑nausea), colestyramine (cholesterol):</strong> can change how fast/well Panadol works – check with your pharmacist.',
                     variants: [
                         { name: 'Panadol Regular', strength: 'Paracetamol 500mg', pack: '200 tabs',
-                        price: 'Rs. 36.35' },
+                            price: 'Rs. 36.35' },
                         { name: 'Panadol Extra', strength: '+ Caffeine 65mg', pack: '100 tabs',
-                        price: 'Rs. 60.00' },
+                            price: 'Rs. 60.00' },
                         { name: 'Panadol Extend', strength: '665mg, slow-release', pack: '100 tabs',
                             price: 'Rs. 76.51' },
                         { name: 'Panadol CF Day', strength: '+ Phenylephrine + Caffeine', pack: '100 tabs',
@@ -1162,7 +1233,6 @@
                     ]
                 }
             },
-
             augmentin: {
                 en: {
                     name: 'Augmentin',
@@ -1330,7 +1400,6 @@
                     }
                 }
             },
-
             centrum: {
                 en: {
                     name: 'Centrum',
@@ -1416,16 +1485,14 @@
             }
         };
 
-        // Helper to get medicine data for a given language
+        // Helper functions
         function getMedicineData(lang, key) {
             const med = MEDICINE_DATA[key];
             if (!med) return null;
             if (med[lang]) return med[lang];
-            // fallback to English
             return med.en;
         }
 
-        // Helper to get UI text for a given language
         function getUI(lang) {
             return UI[lang] || UI.en;
         }
@@ -1439,6 +1506,7 @@
         let currentDashboardBubble = null;
         let recognition = null;
         let isRecording = false;
+        let isSupported = false;
 
         const chatMessages = document.getElementById('chatMessages');
         const userInput = document.getElementById('userInput');
@@ -1491,10 +1559,11 @@
             pdfLabel.textContent = ui.pdfLabel;
             userInput.placeholder = ui.placeholder;
             sendBtn.textContent = ui.sendBtn;
-            micStatus.textContent = ui.micStatusIdle;
+            if (!isRecording) {
+                micStatus.textContent = ui.micStatusIdle;
+            }
             langSubText.textContent = ui.langSub;
 
-            // Update active state on header buttons
             langSelectorBtns.forEach(btn => {
                 btn.classList.toggle('active-lang', btn.dataset.lang === lang);
             });
@@ -1508,7 +1577,6 @@
             if (!med) return '';
             const ui = getUI(currentLang);
 
-            // Define which fields to show as cards
             const cardFields = [
                 'indications', 'howToTake', 'sideEffects', 'contraindications',
                 'patientHistory', 'warnings', 'interactions', 'diet',
@@ -1533,27 +1601,23 @@
 
             gridHtml += `</div>`;
 
-            // ---- Brands section ----
             let brandsHtml = `<div class="brands-section">`;
 
-            // Variants (Panadol, Centrum)
             if (med.variants && med.variants.length) {
                 brandsHtml += `<div class="section-title">${ui.brandsTitle}</div><div style="display:flex; flex-wrap:wrap; gap:6px;">`;
                 med.variants.forEach((v, idx) => {
-                    const boxId = `variant-${medicineKey}-${idx}`;
                     brandsHtml +=
-                        `<span class="brand-box" data-variant="${medicineKey}" data-idx="${idx}" id="${boxId}">${v.name}</span>`;
+                        `<span class="brand-box" data-variant="${medicineKey}" data-idx="${idx}">${v.name}</span>`;
                 });
                 brandsHtml += `</div>`;
             }
 
-            // Brands data (Augmentin)
             if (med.brandsData) {
                 brandsHtml += `<div class="section-title" style="margin-top:16px;">${ui.manufacturersTitle}</div>`;
                 brandsHtml += `<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;">`;
                 Object.keys(med.brandsData).forEach(mfr => {
                     brandsHtml +=
-                        `<button class="brand-btn" data-mfr="${mfr.replace(/\s/g,'')}" data-mfr-full="${mfr}">${mfr}</button>`;
+                        `<button class="brand-btn" data-mfr="${mfr.replace(/\s/g, '')}" data-mfr-full="${mfr}">${mfr}</button>`;
                 });
                 brandsHtml += `</div>`;
                 Object.keys(med.brandsData).forEach(mfr => {
@@ -1573,32 +1637,40 @@
 
             brandsHtml += `</div>`;
 
-            return gridHtml + brandsHtml;
+            // Speaker button
+            const speakBtnHtml = `
+                <div class="speak-dashboard-btn">
+                    <button class="speak-btn" id="speakDashboardBtn">🔊 <span id="speakBtnLabel">Listen to this information</span></button>
+                </div>
+            `;
+
+            return gridHtml + brandsHtml + speakBtnHtml;
         }
 
         // =================================================================
-        // 5. ATTACH BRAND EVENTS
+        // 5. ATTACH BRAND EVENTS & SPEAK BUTTON
         // =================================================================
         function attachBrandEvents() {
-            const ui = getUI(currentLang);
-
-            // Variant boxes
             document.querySelectorAll('.brand-box[data-variant]').forEach(el => {
                 el.removeEventListener('click', handleVariantClick);
                 el.addEventListener('click', handleVariantClick);
             });
 
-            // Manufacturer buttons
             document.querySelectorAll('.brand-btn').forEach(btn => {
                 btn.removeEventListener('click', handleMfrClick);
                 btn.addEventListener('click', handleMfrClick);
             });
 
-            // Product items
             document.querySelectorAll('.brand-product').forEach(item => {
                 item.removeEventListener('click', handleProductClick);
                 item.addEventListener('click', handleProductClick);
             });
+
+            const speakBtn = document.getElementById('speakDashboardBtn');
+            if (speakBtn) {
+                speakBtn.removeEventListener('click', handleSpeakClick);
+                speakBtn.addEventListener('click', handleSpeakClick);
+            }
         }
 
         function handleVariantClick(e) {
@@ -1641,12 +1713,92 @@
         }
 
         // =================================================================
-        // 6. PDF DOWNLOAD
+        // 6. SPEAK FUNCTIONALITY (Text-to-Speech)
+        // =================================================================
+        let speechSynth = window.speechSynthesis;
+        let currentUtterance = null;
+
+        function getTTSLang(lang) {
+            const map = { 'en': 'en-US', 'ur': 'ur-PK', 'sd': 'ur-PK' };
+            return map[lang] || 'en-US';
+        }
+
+        function getUrduVoice() {
+            const voices = speechSynth.getVoices();
+            let voice = voices.find(v => v.lang.startsWith('ur'));
+            if (!voice) voice = voices.find(v => v.lang.includes('ur') || v.lang.includes('PK'));
+            if (!voice) voice = voices.find(v => v.lang.startsWith('ar'));
+            return voice;
+        }
+
+        function handleSpeakClick() {
+            const speakBtn = document.getElementById('speakDashboardBtn');
+            if (!speakBtn) return;
+
+            if (currentUtterance && speechSynth.speaking) {
+                speechSynth.cancel();
+                speakBtn.classList.remove('speaking');
+                const label = speakBtn.querySelector('#speakBtnLabel');
+                if (label) label.textContent = 'Listen to this information';
+                currentUtterance = null;
+                return;
+            }
+
+            if (!currentDashboardBubble) {
+                alert('Please select a medicine first to generate the dashboard.');
+                return;
+            }
+
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = currentDashboardBubble.innerHTML;
+            const buttons = tempDiv.querySelectorAll('button, .brand-box, .brand-btn, .brand-dropdown, .speak-dashboard-btn');
+            buttons.forEach(el => el.remove());
+            let text = tempDiv.textContent || tempDiv.innerText;
+            text = text.replace(/\s+/g, ' ').trim();
+            if (!text) {
+                alert('No text to speak.');
+                return;
+            }
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = getTTSLang(currentLang);
+
+            if (currentLang === 'ur' || currentLang === 'sd') {
+                const urduVoice = getUrduVoice();
+                if (urduVoice) utterance.voice = urduVoice;
+            }
+
+            utterance.rate = 0.85;
+            utterance.pitch = 1;
+            utterance.volume = 1;
+
+            speakBtn.classList.add('speaking');
+            const label = speakBtn.querySelector('#speakBtnLabel');
+            if (label) label.textContent = '🔊 Speaking...';
+
+            utterance.onend = function() {
+                speakBtn.classList.remove('speaking');
+                if (label) label.textContent = 'Listen to this information';
+                currentUtterance = null;
+            };
+
+            utterance.onerror = function(event) {
+                speakBtn.classList.remove('speaking');
+                if (label) label.textContent = 'Listen to this information';
+                currentUtterance = null;
+            };
+
+            currentUtterance = utterance;
+            speechSynth.speak(utterance);
+        }
+
+        // =================================================================
+        // 7. PDF DOWNLOAD
         // =================================================================
         function downloadPDF() {
             if (!currentDashboardBubble) {
                 const ui = getUI(currentLang);
-                alert('📋 Please select a medicine (Panadol, Augmentin, or Centrum) to generate a dashboard first.');
+                alert('📋 Please select a medicine first.');
                 return;
             }
 
@@ -1676,43 +1828,63 @@
         }
 
         // =================================================================
-        // 7. SPEECH RECOGNITION
+        // 8. SPEECH RECOGNITION (FIXED FOR MOBILE)
         // =================================================================
+        function getSpeechLang(lang) {
+            const map = {
+                'en': 'en-US',
+                'ur': 'ur-PK',
+                'sd': 'ur-PK' // Sindhi falls back to Urdu-PK for better support
+            };
+            return map[lang] || 'en-US';
+        }
+
         function initSpeechRecognition() {
-            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                micBtn.style.opacity = '0.4';
-                micBtn.title = 'Speech recognition not supported in this browser';
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            if (!SR) {
+                isSupported = false;
+                micBtn.disabled = true;
+                micBtn.title = 'Speech recognition not supported';
+                const ui = getUI(currentLang);
+                micStatus.textContent = ui.micStatusNoSupport;
+                micStatus.className = 'mic-status error';
                 return;
             }
 
-            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            isSupported = true;
             recognition = new SR();
             recognition.continuous = false;
             recognition.interimResults = true;
             recognition.maxAlternatives = 1;
-
-            // Set language based on current selection
             recognition.lang = getSpeechLang(currentLang);
 
             recognition.onstart = function() {
                 isRecording = true;
                 micBtn.classList.add('recording');
+                micBtn.disabled = false;
                 const ui = getUI(currentLang);
                 micStatus.textContent = ui.micStatusListening;
+                micStatus.className = 'mic-status';
                 userInput.placeholder = '🎤 Listening...';
             };
 
             recognition.onend = function() {
                 isRecording = false;
                 micBtn.classList.remove('recording');
+                micBtn.disabled = false;
                 const ui = getUI(currentLang);
-                micStatus.textContent = ui.micStatusIdle;
+                if (!micStatus.textContent.includes('✅')) {
+                    micStatus.textContent = ui.micStatusIdle;
+                    micStatus.className = 'mic-status';
+                }
                 userInput.placeholder = ui.placeholder;
             };
 
             recognition.onresult = function(event) {
                 let finalTranscript = '';
                 let interimTranscript = '';
+
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     const transcript = event.results[i][0].transcript;
                     if (event.results[i].isFinal) {
@@ -1730,41 +1902,79 @@
                     userInput.value = finalTranscript;
                     const ui = getUI(currentLang);
                     micStatus.textContent = ui.micStatusDetected;
+                    micStatus.className = 'mic-status success';
+
+                    // Auto-submit after a short delay
                     setTimeout(() => {
                         const text = userInput.value.trim();
                         if (text) {
                             processUserMessage(text);
                             userInput.value = '';
                         }
-                    }, 300);
+                        // Reset mic status after processing
+                        setTimeout(() => {
+                            if (!isRecording) {
+                                micStatus.textContent = ui.micStatusIdle;
+                                micStatus.className = 'mic-status';
+                            }
+                        }, 1000);
+                    }, 400);
                 }
             };
 
             recognition.onerror = function(event) {
                 console.error('Speech recognition error:', event.error);
+
+                // Handle specific errors gracefully
+                let errorMsg = event.error;
+                if (errorMsg === 'not-allowed') {
+                    errorMsg = '🔇 Please allow microphone access in your browser settings.';
+                } else if (errorMsg === 'no-speech') {
+                    errorMsg = '🔇 No speech detected. Try again.';
+                } else if (errorMsg === 'audio-capture') {
+                    errorMsg = '🔇 Could not access microphone. Check permissions.';
+                } else if (errorMsg === 'network') {
+                    errorMsg = '🌐 Network error. Check your connection.';
+                } else {
+                    errorMsg = '❌ Error: ' + errorMsg;
+                }
+
                 const ui = getUI(currentLang);
-                micStatus.textContent = '❌ ' + event.error;
+                micStatus.textContent = errorMsg;
+                micStatus.className = 'mic-status error';
                 micBtn.classList.remove('recording');
                 isRecording = false;
                 userInput.placeholder = ui.placeholder;
+
+                // Reset after 3 seconds
                 setTimeout(() => {
-                    micStatus.textContent = ui.micStatusIdle;
-                }, 2000);
+                    if (!isRecording) {
+                        micStatus.textContent = ui.micStatusIdle;
+                        micStatus.className = 'mic-status';
+                    }
+                }, 3000);
             };
+
+            console.log('✅ Speech recognition initialized for', currentLang);
         }
 
-        function getSpeechLang(lang) {
-            const map = {
-                'en': 'en-US',
-                'ur': 'ur-PK',
-                'sd': 'sd' // Sindhi – may fallback to 'ur' in some browsers
-            };
-            return map[lang] || 'en-US';
+        // Request microphone permission explicitly (helps on mobile)
+        async function requestMicrophonePermission() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(track => track.stop());
+                return true;
+            } catch (err) {
+                console.warn('Microphone permission denied:', err);
+                return false;
+            }
         }
 
         function toggleRecording() {
-            if (!recognition) {
-                alert('Speech recognition is not available in this browser.');
+            if (!isSupported || !recognition) {
+                const ui = getUI(currentLang);
+                micStatus.textContent = ui.micStatusNoSupport;
+                micStatus.className = 'mic-status error';
                 return;
             }
 
@@ -1773,30 +1983,117 @@
                 return;
             }
 
-            recognition.lang = getSpeechLang(currentLang);
-            try {
-                recognition.start();
-            } catch (e) {
-                console.warn('Recognition start error:', e);
-                const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-                recognition = new SR();
-                recognition.continuous = false;
-                recognition.interimResults = true;
+            // Request permission first (helps on mobile)
+            requestMicrophonePermission().then((granted) => {
+                if (!granted) {
+                    const ui = getUI(currentLang);
+                    micStatus.textContent = ui.micStatusPermission;
+                    micStatus.className = 'mic-status error';
+                    // Try to start anyway - browser might ask for permission
+                }
+
+                // Set language before starting
                 recognition.lang = getSpeechLang(currentLang);
-                recognition.onstart = function() { /* ... */ };
-                recognition.onend = function() { /* ... */ };
-                recognition.onresult = function(event) { /* ... */ };
-                recognition.onerror = function(event) { /* ... */ };
+
                 try {
                     recognition.start();
-                } catch (e2) {
-                    console.error('Failed to start recognition:', e2);
+                } catch (e) {
+                    console.warn('Recognition start error:', e);
+                    // If start fails, try to re-initialize
+                    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    if (SR) {
+                        recognition = new SR();
+                        recognition.continuous = false;
+                        recognition.interimResults = true;
+                        recognition.maxAlternatives = 1;
+                        recognition.lang = getSpeechLang(currentLang);
+
+                        // Re-bind events
+                        recognition.onstart = function() {
+                            isRecording = true;
+                            micBtn.classList.add('recording');
+                            const ui = getUI(currentLang);
+                            micStatus.textContent = ui.micStatusListening;
+                            micStatus.className = 'mic-status';
+                            userInput.placeholder = '🎤 Listening...';
+                        };
+                        recognition.onend = function() {
+                            isRecording = false;
+                            micBtn.classList.remove('recording');
+                            const ui = getUI(currentLang);
+                            if (!micStatus.textContent.includes('✅')) {
+                                micStatus.textContent = ui.micStatusIdle;
+                                micStatus.className = 'mic-status';
+                            }
+                            userInput.placeholder = ui.placeholder;
+                        };
+                        recognition.onresult = function(event) {
+                            let finalTranscript = '';
+                            let interimTranscript = '';
+                            for (let i = event.resultIndex; i < event.results.length; i++) {
+                                const transcript = event.results[i][0].transcript;
+                                if (event.results[i].isFinal) {
+                                    finalTranscript += transcript;
+                                } else {
+                                    interimTranscript += transcript;
+                                }
+                            }
+                            if (interimTranscript) userInput.value = interimTranscript;
+                            if (finalTranscript) {
+                                userInput.value = finalTranscript;
+                                const ui = getUI(currentLang);
+                                micStatus.textContent = ui.micStatusDetected;
+                                micStatus.className = 'mic-status success';
+                                setTimeout(() => {
+                                    const text = userInput.value.trim();
+                                    if (text) {
+                                        processUserMessage(text);
+                                        userInput.value = '';
+                                    }
+                                    setTimeout(() => {
+                                        if (!isRecording) {
+                                            micStatus.textContent = ui.micStatusIdle;
+                                            micStatus.className = 'mic-status';
+                                        }
+                                    }, 1000);
+                                }, 400);
+                            }
+                        };
+                        recognition.onerror = function(event) {
+                            const ui = getUI(currentLang);
+                            let errorMsg = event.error;
+                            if (errorMsg === 'not-allowed') errorMsg = '🔇 Allow mic access';
+                            else if (errorMsg === 'no-speech') errorMsg = '🔇 No speech detected';
+                            else if (errorMsg === 'audio-capture') errorMsg = '🔇 Mic access denied';
+                            else errorMsg = '❌ ' + errorMsg;
+                            micStatus.textContent = errorMsg;
+                            micStatus.className = 'mic-status error';
+                            micBtn.classList.remove('recording');
+                            isRecording = false;
+                            userInput.placeholder = ui.placeholder;
+                            setTimeout(() => {
+                                if (!isRecording) {
+                                    micStatus.textContent = ui.micStatusIdle;
+                                    micStatus.className = 'mic-status';
+                                }
+                            }, 3000);
+                        };
+
+                        try {
+                            recognition.start();
+                        } catch (e2) {
+                            console.error('Failed to restart recognition:', e2);
+                            const ui = getUI(currentLang);
+                            micStatus.textContent = '❌ Could not start mic';
+                            micStatus.className = 'mic-status error';
+                        }
+                    }
                 }
-            }
+            });
         }
 
         // =================================================================
-        // 8. CORE LOGIC
+        // 9. CORE LOGIC
         // =================================================================
         function processUserMessage(inputText) {
             const text = inputText.trim();
@@ -1806,14 +2103,6 @@
             const ui = getUI(currentLang);
             const lower = text.toLowerCase();
 
-            // Map medicine names in all languages
-            const medNames = {
-                en: ['panadol', 'augmentin', 'centrum'],
-                ur: ['پیناڈول', 'آگمینٹن', 'سینٹرم'],
-                sd: ['پيناڊول', 'آگمينٽن', 'سينٽرم']
-            };
-
-            // Check if user wants to restart
             const restartWords = ['new', 'restart', 'start over', 'نیا', 'دوبارہ شروع', 'ٻيهر شروع'];
             if (restartWords.some(w => lower.includes(w))) {
                 selectedMedicineKey = null;
@@ -1824,7 +2113,6 @@
             }
 
             if (!selectedMedicineKey) {
-                // Try to find medicine in any language
                 let found = null;
                 const allKeys = Object.keys(MEDICINE_DATA);
                 for (let key of allKeys) {
@@ -1854,7 +2142,9 @@
                 if (found) {
                     selectedMedicineKey = found;
                     const med = getMedicineData(currentLang, found);
-                    addMessage('bot', `Here is the complete patient counselling dashboard for <strong>${med.name} (${med.generic})</strong>: `);
+                    addMessage('bot',
+                        `Here is the complete patient counselling dashboard for <strong>${med.name} (${med.generic})</strong>: `
+                        );
 
                     const dashboardHtml = renderDashboard(found);
                     const msgDiv = document.createElement('div');
@@ -1883,47 +2173,39 @@
                 return;
             }
 
-            // Follow-up mode
             if (selectedMedicineKey && awaitingFollowUp) {
                 const med = getMedicineData(currentLang, selectedMedicineKey);
                 const query = lower;
 
                 const keywordMap = [
-                    { keywords: ['side effect', 'side-effect', 'sideeffects', 'adverse', 'reaction', 'مضر اثرات',
+                    { keywords: ['side effect', 'side-effects', 'sideeffects', 'adverse', 'reaction', 'مضر اثرات',
                             'ضمني اثرات'
                         ], field: 'sideEffects', label: 'sideEffects' },
-                    { keywords: ['indication', 'uses', 'use', 'what is it for', 'treat', 'استعمال', 'استعمالات',
-                            'استعمال'
-                        ], field: 'indications', label: 'indications' },
-                    { keywords: ['contraindication', 'who should not', 'avoid', 'not take', 'احتیاط', 'احتياط'],
-                        field: 'contraindications', label: 'contraindications' },
-                    { keywords: ['patient history', 'caution', 'medical history', 'kidney', 'liver', 'pregnancy',
-                            'breastfeeding', 'مریض کی تاریخ', 'مريض جي تاريخ'
+                    { keywords: ['indication', 'uses', 'use', 'treat', 'استعمال', 'استعمالات'], field: 'indications',
+                        label: 'indications' },
+                    { keywords: ['contraindication', 'avoid', 'not take', 'احتیاط', 'احتياط'], field: 'contraindications',
+                        label: 'contraindications' },
+                    { keywords: ['patient history', 'caution', 'kidney', 'liver', 'pregnancy', 'breastfeeding',
+                            'مریض کی تاریخ', 'مريض جي تاريخ'
                         ], field: 'patientHistory', label: 'patientHistory' },
-                    { keywords: ['warning', 'misuse', 'overuse', 'overdose', 'resistance', 'course', 'duration',
-                            'انتباہ', 'انتباہات'
-                        ], field: 'warnings', label: 'warnings' },
-                    { keywords: ['alternative', 'brand', 'price', 'cost', 'other name', 'generic', 'برانڈ',
-                            'قیمت', 'برانڊ', 'قيمت'
-                        ], field: 'altBrands', label: 'altBrands' },
-                    { keywords: ['dosage form', 'tablet', 'syrup', 'injection', 'capsule', 'drop', 'form',
-                            'متبادل شکلیں', 'متبادل شڪلون'
+                    { keywords: ['warning', 'misuse', 'overuse', 'overdose', 'resistance', 'انتباہ', 'انتباہات'],
+                        field: 'warnings', label: 'warnings' },
+                    { keywords: ['brand', 'price', 'cost', 'generic', 'برانڈ', 'قیمت', 'برانڊ', 'قيمت'], field: 'altBrands',
+                        label: 'altBrands' },
+                    { keywords: ['dosage form', 'tablet', 'syrup', 'injection', 'capsule', 'drop', 'متبادل شکلیں',
+                            'متبادل شڪلون'
                         ], field: 'altForms', label: 'altForms' },
-                    { keywords: ['onset', 'how fast', 'start working', 'peak', 'kick in', 'اثر کا آغاز',
-                            'اثر جي شروعات'
-                        ], field: 'onset', label: 'onset' },
-                    { keywords: ['storage', 'keep', 'temperature', 'store', 'light', 'ذخیرہ', 'ذخيرو'],
-                        field: 'storage', label: 'storage' },
+                    { keywords: ['onset', 'how fast', 'start working', 'peak', 'اثر کا آغاز', 'اثر جي شروعات'],
+                        field: 'onset', label: 'onset' },
+                    { keywords: ['storage', 'keep', 'store', 'ذخیرہ', 'ذخيرو'], field: 'storage', label: 'storage' },
                     { keywords: ['missed dose', 'forgot', 'skip', 'double dose', 'remember', 'بھولی ہوئی خوراک',
                             'وسري ويل خوراڪ'
                         ], field: 'missedDose', label: 'missedDose' },
-                    { keywords: ['interaction', 'interacts', 'with other drugs', 'blood thinner', 'birth control',
-                            'arthritis', 'flucloxacillin', 'warfarin', 'metoclopramide', 'domperidone',
-                            'colestyramine', 'calcium', 'magnesium', 'zinc', 'iron', 'vitamin k', 'amlodipine',
-                            'metoprolol', 'تعاملات', 'تعامل'
+                    { keywords: ['interaction', 'interacts', 'blood thinner', 'warfarin', 'calcium', 'magnesium',
+                            'zinc', 'iron', 'تعاملات', 'تعامل'
                         ], field: 'interactions', label: 'interactions' },
-                    { keywords: ['diet', 'eat', 'food', 'yogurt', 'alcohol', 'drink', 'meal', 'خوراک',
-                            'طرز زندگی', 'خوراڪ', 'طرز زندگي'
+                    { keywords: ['diet', 'eat', 'food', 'yogurt', 'alcohol', 'drink', 'meal', 'خوراک', 'طرز زندگی',
+                            'خوراڪ', 'طرز زندگي'
                         ], field: 'diet', label: 'diet' },
                     { keywords: ['how to take', 'take', 'dosage', 'dose', 'administration', 'استعمال کا طریقہ',
                             'استعمال جو طريقو'
@@ -1944,58 +2226,55 @@
                     const labelText = ui.fieldLabels[foundLabel] || foundLabel;
                     const response = `📌 <strong>${labelText} for ${med.name}:</strong><br><br>${med[foundField]}`;
                     addMessage('bot', response);
-                    addMessage('bot', `💡 Anything else you'd like to know about <strong>${med.name}</strong>? Just ask! (Or type "new" to start over with a different medicine.)`);
+                    addMessage('bot',
+                        `💡 Anything else you'd like to know about <strong>${med.name}</strong>? Just ask! (Or type "new" to start over.)`
+                        );
                 } else {
                     addMessage('bot', ui.noInfo(text, med.name));
                 }
                 return;
             }
 
-            addMessage('bot', `💬 I'm here to help. Please type a medicine name (Panadol, Augmentin, Centrum) or ask a follow‑up question.`);
+            addMessage('bot',
+                `💬 I'm here to help. Please type a medicine name (Panadol, Augmentin, Centrum) or ask a follow‑up question.`
+                );
         }
 
         // =================================================================
-        // 9. LANGUAGE SELECTION
+        // 10. LANGUAGE SELECTION
         // =================================================================
         function selectLanguage(lang) {
             currentLang = lang;
             updateUILanguage(lang);
             langOverlay.classList.add('hidden');
 
-            // Reset state
             selectedMedicineKey = null;
             awaitingFollowUp = false;
             currentDashboardBubble = null;
             clearChat();
 
-            // Re-initialize speech recognition with new language
             if (recognition) {
                 recognition.lang = getSpeechLang(lang);
             }
 
-            // Show welcome message in selected language
             const ui = getUI(lang);
             addMessage('bot', ui.welcome);
 
-            // Update active state on overlay options
             langOptions.forEach(opt => {
                 opt.classList.toggle('active', opt.dataset.lang === lang);
             });
         }
 
         // =================================================================
-        // 10. EVENT BINDINGS
+        // 11. EVENT BINDINGS
         // =================================================================
 
-        // Overlay language selection
         langOptions.forEach(opt => {
             opt.addEventListener('click', function() {
-                const lang = this.dataset.lang;
-                selectLanguage(lang);
+                selectLanguage(this.dataset.lang);
             });
         });
 
-        // Header language buttons
         langSelectorBtns.forEach(btn => {
             btn.addEventListener('click', function() {
                 const lang = this.dataset.lang;
@@ -2005,7 +2284,6 @@
             });
         });
 
-        // Send button
         sendBtn.addEventListener('click', () => {
             const text = userInput.value.trim();
             if (!text) return;
@@ -2013,7 +2291,6 @@
             processUserMessage(text);
         });
 
-        // Enter key
         userInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -2021,23 +2298,30 @@
             }
         });
 
-        // PDF download
         downloadPdfBtn.addEventListener('click', downloadPDF);
 
-        // Mic button
         micBtn.addEventListener('click', toggleRecording);
 
         // =================================================================
-        // 11. INITIALIZATION
+        // 12. INITIALIZATION
         // =================================================================
 
-        // Default to English
+        // Preload voices for TTS
+        if (speechSynth) {
+            speechSynth.getVoices();
+            speechSynth.onvoiceschanged = function() {
+                speechSynth.getVoices();
+            };
+        }
+
         selectLanguage('en');
 
-        // Init speech recognition
-        initSpeechRecognition();
+        // Initialize speech recognition after a small delay to ensure DOM is ready
+        setTimeout(() => {
+            initSpeechRecognition();
+        }, 300);
 
-        console.log('✅ PharmaBot AI Multilingual initialized. Current language:', currentLang);
+        console.log('✅ PharmaBot AI Multilingual initialized with mobile-friendly speech-to-text.');
     </script>
 </body>
 </html>
