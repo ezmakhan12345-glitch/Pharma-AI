@@ -4,11 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>PharmaBot AI - Multilingual Patient Counselling</title>
-
     <!-- PDF Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js">
     </script>
-
     <style>
         * {
             margin: 0;
@@ -16,7 +14,6 @@
             box-sizing: border-box;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
-
         body {
             background: #f4f7fb;
             display: flex;
@@ -25,7 +22,6 @@
             min-height: 100vh;
             padding: 20px;
         }
-
         #langOverlay {
             position: fixed;
             inset: 0;
@@ -37,7 +33,6 @@
             z-index: 9999;
             animation: fadeInOverlay 0.5s ease;
         }
-
         @keyframes fadeInOverlay {
             from {
                 opacity: 0;
@@ -48,11 +43,9 @@
                 transform: scale(1);
             }
         }
-
         #langOverlay.hidden {
             display: none;
         }
-
         .lang-box {
             background: white;
             border-radius: 40px;
@@ -62,27 +55,23 @@
             text-align: center;
             box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
         }
-
         .lang-box h2 {
             font-size: 26px;
             font-weight: 700;
             color: #0a2e4b;
             margin-bottom: 8px;
         }
-
         .lang-box p {
             color: #64748b;
             font-size: 15px;
             margin-bottom: 28px;
         }
-
         .lang-options {
             display: flex;
             gap: 16px;
             justify-content: center;
             flex-wrap: wrap;
         }
-
         .lang-option {
             flex: 1;
             min-width: 110px;
@@ -95,48 +84,36 @@
             text-align: center;
             user-select: none;
         }
-
         .lang-option:hover {
             border-color: #1a5276;
             background: #f0f7fe;
             transform: translateY(-3px);
             box-shadow: 0 8px 24px rgba(26, 82, 118, 0.12);
         }
-
         .lang-option.active {
             border-color: #1a5276;
             background: #1a5276;
             color: white;
             box-shadow: 0 8px 24px rgba(26, 82, 118, 0.25);
         }
-
         .lang-option.active .lang-label {
             color: white;
         }
         .lang-option.active .lang-sub {
             color: rgba(255, 255, 255, 0.75);
         }
-
-        .lang-option .lang-flag {
-            font-size: 36px;
-            display: block;
-            margin-bottom: 6px;
-        }
-
         .lang-option .lang-label {
             font-size: 18px;
             font-weight: 600;
             color: #0a2e4b;
             display: block;
         }
-
         .lang-option .lang-sub {
             font-size: 12px;
             color: #94a3b8;
             display: block;
             margin-top: 2px;
         }
-
         #app {
             width: 100%;
             max-width: 1100px;
@@ -149,7 +126,6 @@
             overflow: hidden;
             position: relative;
         }
-
         .chat-header {
             background: linear-gradient(135deg, #0a2e4b, #1a5276);
             color: white;
@@ -161,7 +137,6 @@
             flex-shrink: 0;
             flex-wrap: wrap;
         }
-
         .chat-header .bot-icon {
             background: #2ecc71;
             width: 40px;
@@ -175,14 +150,12 @@
             color: white;
             flex-shrink: 0;
         }
-
         .chat-header h1 {
             font-size: 20px;
             font-weight: 600;
             letter-spacing: -0.3px;
             flex-shrink: 0;
         }
-
         .header-actions {
             display: flex;
             align-items: center;
@@ -190,7 +163,6 @@
             margin-left: auto;
             flex-wrap: wrap;
         }
-
         .lang-selector {
             display: flex;
             gap: 4px;
@@ -199,7 +171,6 @@
             border-radius: 30px;
             border: 1px solid rgba(255, 255, 255, 0.15);
         }
-
         .lang-selector .lang-btn {
             background: transparent;
             border: none;
@@ -215,22 +186,15 @@
             gap: 4px;
             white-space: nowrap;
         }
-
         .lang-selector .lang-btn:hover {
             background: rgba(255, 255, 255, 0.15);
             color: white;
         }
-
         .lang-selector .lang-btn.active-lang {
             background: white;
             color: #0a2e4b;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
-
-        .lang-selector .lang-btn .flag {
-            font-size: 14px;
-        }
-
         .pdf-btn {
             background: rgba(255, 255, 255, 0.15);
             border: 1px solid rgba(255, 255, 255, 0.25);
@@ -245,17 +209,14 @@
             gap: 6px;
             transition: all 0.2s ease;
         }
-
         .pdf-btn:hover {
             background: rgba(255, 255, 255, 0.25);
             border-color: rgba(255, 255, 255, 0.5);
             transform: scale(1.02);
         }
-
         .pdf-btn:active {
             transform: scale(0.95);
         }
-
         .chat-messages {
             flex: 1;
             overflow-y: auto;
@@ -265,22 +226,18 @@
             flex-direction: column;
             gap: 16px;
         }
-
         .message {
             display: flex;
             flex-direction: column;
             max-width: 88%;
             animation: fadeIn 0.4s ease;
         }
-
         .message.bot {
             align-self: flex-start;
         }
-
         .message.user {
             align-self: flex-end;
         }
-
         .message .bubble {
             padding: 14px 20px;
             border-radius: 18px;
@@ -289,20 +246,17 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
             word-break: break-word;
         }
-
         .message.bot .bubble {
             background: white;
             border: 1px solid #e9edf4;
             border-bottom-left-radius: 4px;
             color: #1e293b;
         }
-
         .message.user .bubble {
             background: #1a5276;
             color: white;
             border-bottom-right-radius: 4px;
         }
-
         .message .label {
             font-size: 11px;
             font-weight: 600;
@@ -312,7 +266,6 @@
             margin-bottom: 4px;
             padding-left: 4px;
         }
-
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -323,7 +276,6 @@
                 transform: translateY(0);
             }
         }
-
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -331,7 +283,6 @@
             margin: 8px 0 4px 0;
             width: 100%;
         }
-
         .dash-card {
             background: white;
             border-radius: 16px;
@@ -340,12 +291,10 @@
             border: 1px solid #edf2f7;
             transition: all 0.2s;
         }
-
         .dash-card:hover {
             border-color: #bdd3eb;
             box-shadow: 0 6px 16px rgba(26, 82, 118, 0.08);
         }
-
         .dash-card .card-title {
             font-size: 11px;
             font-weight: 700;
@@ -359,30 +308,24 @@
             border-bottom: 2px solid #eef4fa;
             padding-bottom: 5px;
         }
-
         .dash-card .card-title .icon {
             font-size: 14px;
         }
-
         .dash-card .card-body {
             font-size: 13.5px;
             line-height: 1.6;
             color: #1e293b;
         }
-
         .dash-card .card-body strong {
             color: #0f2e44;
         }
-
         .dash-card .card-body ul {
             margin: 4px 0 0 16px;
             padding: 0;
         }
-
         .dash-card .card-body ul li {
             margin-bottom: 3px;
         }
-
         .medicine-title-dash {
             grid-column: 1 / -1;
             background: linear-gradient(135deg, #0a2e4b, #1a5276);
@@ -392,26 +335,22 @@
             border-radius: 16px;
             margin-bottom: 2px;
         }
-
         .medicine-title-dash h2 {
             font-size: 20px;
             font-weight: 600;
             letter-spacing: -0.3px;
         }
-
         .medicine-title-dash .generic {
             font-size: 14px;
             font-weight: 400;
             opacity: 0.85;
             margin-left: 8px;
         }
-
         .brands-section {
             margin-top: 16px;
             border-top: 2px solid #eef4fa;
             padding-top: 14px;
         }
-
         .brands-section .section-title {
             font-size: 14px;
             font-weight: 700;
@@ -421,7 +360,6 @@
             align-items: center;
             gap: 6px;
         }
-
         .brand-box {
             display: inline-block;
             background: #f0f4f9;
@@ -435,18 +373,15 @@
             cursor: pointer;
             transition: all 0.2s;
         }
-
         .brand-box:hover {
             background: #dce6f0;
             border-color: #1a5276;
         }
-
         .brand-box.active {
             background: #1a5276;
             color: white;
             border-color: #1a5276;
         }
-
         .brand-btn {
             background: #f0f4f9;
             border: 1px solid #d0dbe8;
@@ -458,18 +393,15 @@
             cursor: pointer;
             transition: all 0.2s;
         }
-
         .brand-btn:hover {
             background: #dce6f0;
             border-color: #1a5276;
         }
-
         .brand-btn.active {
             background: #1a5276;
             color: white;
             border-color: #1a5276;
         }
-
         .brand-dropdown {
             background: #f8fafc;
             border-radius: 12px;
@@ -477,13 +409,11 @@
             border: 1px solid #e2e8f0;
             margin-top: 6px;
         }
-
         .brand-dropdown ul {
             list-style: none;
             padding: 0;
             margin: 0;
         }
-
         .brand-dropdown li {
             padding: 7px 14px;
             border-bottom: 1px solid #edf2f7;
@@ -491,21 +421,17 @@
             transition: background 0.1s;
             font-size: 13.5px;
         }
-
         .brand-dropdown li:last-child {
             border-bottom: none;
         }
-
         .brand-dropdown li:hover {
             background: #e2e8f0;
         }
-
         .brand-dropdown li .detail {
             color: #475569;
             font-size: 12px;
             display: block;
         }
-
         .input-area {
             padding: 12px 20px 18px 20px;
             background: white;
@@ -516,7 +442,6 @@
             flex-shrink: 0;
             flex-wrap: wrap;
         }
-
         .input-area .input-row {
             display: flex;
             flex: 1;
@@ -524,7 +449,6 @@
             align-items: center;
             min-width: 200px;
         }
-
         .input-area input {
             flex: 1;
             padding: 12px 16px;
@@ -536,24 +460,20 @@
             background: #f8fafc;
             min-width: 120px;
         }
-
         .input-area input:focus {
             border-color: #1a5276;
             background: white;
             box-shadow: 0 0 0 4px rgba(26, 82, 118, 0.1);
         }
-
         .input-area input::placeholder {
             color: #94a3b8;
         }
-
         .input-area .btn-group {
             display: flex;
             gap: 8px;
             align-items: center;
             flex-shrink: 0;
         }
-
         .input-area button {
             background: #1a5276;
             color: white;
@@ -566,18 +486,15 @@
             transition: all 0.2s;
             white-space: nowrap;
         }
-
         .input-area button:hover {
             background: #0a2e4b;
             transform: scale(1.02);
         }
-
         .input-area button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
             transform: scale(1);
         }
-
         .input-area .mic-btn {
             background: #e2e8f0;
             color: #1e293b;
@@ -595,24 +512,25 @@
             flex-shrink: 0;
             position: relative;
         }
-
         .input-area .mic-btn:hover {
             background: #cbd5e1;
             transform: scale(1.05);
         }
-
         .input-area .mic-btn.recording {
             background: #ef4444;
             color: white;
             animation: pulseMic 1.2s infinite;
         }
-
         .input-area .mic-btn:disabled {
             opacity: 0.4;
             cursor: not-allowed;
             transform: none;
         }
-
+        .input-area .mic-btn.unsupported {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #e2e8f0;
+        }
         @keyframes pulseMic {
             0%,
             100% {
@@ -622,77 +540,31 @@
                 box-shadow: 0 0 0 12px rgba(239, 68, 68, 0);
             }
         }
-
         .mic-status {
             font-size: 12px;
             color: #64748b;
             padding: 0 4px;
-            min-width: 70px;
+            min-width: 80px;
             text-align: center;
+            transition: all 0.3s ease;
         }
-
         .mic-status.error {
             color: #ef4444;
+            font-weight: 500;
         }
-
         .mic-status.success {
             color: #22c55e;
+            font-weight: 500;
         }
-
-        .typing-indicator {
-            display: flex;
-            gap: 4px;
-            padding: 8px 0;
+        .mic-status.info {
+            color: #3b82f6;
+            font-weight: 500;
         }
-
-        .typing-indicator span {
-            width: 8px;
-            height: 8px;
-            background: #94a3b8;
-            border-radius: 50%;
-            display: inline-block;
-            animation: bounce 1.4s infinite both;
-        }
-
-        .typing-indicator span:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-        .typing-indicator span:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-
-        @keyframes bounce {
-            0%,
-            80%,
-            100% {
-                transform: scale(0);
-            }
-            40% {
-                transform: scale(1);
-            }
-        }
-
-        .chat-messages::-webkit-scrollbar {
-            width: 5px;
-        }
-        .chat-messages::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .chat-messages::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 10px;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
         .speak-dashboard-btn {
             margin-top: 16px;
             display: flex;
             justify-content: center;
         }
-
         .speak-dashboard-btn .speak-btn {
             background: #1a5276;
             color: white;
@@ -708,21 +580,17 @@
             transition: all 0.2s ease;
             box-shadow: 0 4px 12px rgba(26, 82, 118, 0.2);
         }
-
         .speak-dashboard-btn .speak-btn:hover {
             background: #0a2e4b;
             transform: scale(1.02);
         }
-
         .speak-dashboard-btn .speak-btn:active {
             transform: scale(0.95);
         }
-
         .speak-dashboard-btn .speak-btn.speaking {
             background: #e67e22;
             animation: pulseSpeak 1s infinite;
         }
-
         @keyframes pulseSpeak {
             0% {
                 box-shadow: 0 0 0 0 rgba(230, 126, 34, 0.5);
@@ -734,7 +602,6 @@
                 box-shadow: 0 0 0 0 rgba(230, 126, 34, 0);
             }
         }
-
         @media (max-width: 700px) {
             .dashboard-grid {
                 grid-template-columns: 1fr 1fr;
@@ -759,12 +626,6 @@
                 min-width: 80px;
                 padding: 14px 8px 12px;
             }
-            .lang-option .lang-flag {
-                font-size: 28px;
-            }
-            .lang-option .lang-label {
-                font-size: 15px;
-            }
             .input-area .input-row {
                 flex-wrap: wrap;
             }
@@ -785,15 +646,11 @@
                 padding: 2px 8px;
                 font-size: 11px;
             }
-            .lang-selector .lang-btn .flag {
-                font-size: 12px;
-            }
             .mic-status {
-                min-width: 50px;
+                min-width: 60px;
                 font-size: 11px;
             }
         }
-
         @media (max-width: 480px) {
             .dashboard-grid {
                 grid-template-columns: 1fr;
@@ -817,7 +674,7 @@
                 padding: 8px;
             }
             .mic-status {
-                min-width: 40px;
+                min-width: 50px;
                 font-size: 10px;
             }
         }
@@ -825,26 +682,21 @@
 </head>
 <body>
 
-    <!-- ============================================================
-    LANGUAGE SELECTOR OVERLAY (first visit)
-    ============================================================ -->
+    <!-- LANGUAGE SELECTOR OVERLAY -->
     <div id="langOverlay">
         <div class="lang-box">
             <h2>🌍 Choose Your Language</h2>
             <p id="langSubText">Select your preferred language for the entire chat experience.</p>
             <div class="lang-options">
                 <div class="lang-option" data-lang="en">
-                    <span class="lang-flag">English</span>
                     <span class="lang-label">English</span>
                     <span class="lang-sub">English</span>
                 </div>
                 <div class="lang-option" data-lang="ur">
-                    <span class="lang-flag">Urdu</span>
                     <span class="lang-label">اردو</span>
                     <span class="lang-sub">Urdu</span>
                 </div>
                 <div class="lang-option" data-lang="sd">
-                    <span class="lang-flag">Sindhi</span>
                     <span class="lang-label">سنڌي</span>
                     <span class="lang-sub">Sindhi</span>
                 </div>
@@ -852,9 +704,7 @@
         </div>
     </div>
 
-    <!-- ============================================================
-    MAIN APP
-    ============================================================ -->
+    <!-- MAIN APP -->
     <div id="app">
         <div class="chat-header">
             <div class="bot-icon">💊</div>
@@ -862,15 +712,12 @@
             <div class="header-actions">
                 <div class="lang-selector" id="langSelector">
                     <button class="lang-btn active-lang" data-lang="en">
-                        <span class="flag">🇬🇧</span>
                         <span class="label-text">English</span>
                     </button>
                     <button class="lang-btn" data-lang="ur">
-                        <span class="flag">🇵🇰</span>
                         <span class="label-text">Urdu</span>
                     </button>
                     <button class="lang-btn" data-lang="sd">
-                        <span class="flag">🇵🇰</span>
                         <span class="label-text">Sindhi</span>
                     </button>
                 </div>
@@ -892,6 +739,7 @@
         </div>
     </div>
 
+   
     <!-- ============================================================
     JAVASCRIPT
     ============================================================ -->
