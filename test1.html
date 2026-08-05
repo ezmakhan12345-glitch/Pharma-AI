@@ -1,0 +1,2046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PharmaBot AI - Multilingual Patient Counselling</title>
+
+    <!-- PDF Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js">
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background: #f4f7fb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* ---- LANGUAGE SELECTOR OVERLAY ---- */
+        #langOverlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 46, 75, 0.85);
+            backdrop-filter: blur(12px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            animation: fadeInOverlay 0.5s ease;
+        }
+
+        @keyframes fadeInOverlay {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        #langOverlay.hidden {
+            display: none;
+        }
+
+        .lang-box {
+            background: white;
+            border-radius: 40px;
+            padding: 48px 40px 40px;
+            max-width: 620px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
+        }
+
+        .lang-box h2 {
+            font-size: 26px;
+            font-weight: 700;
+            color: #0a2e4b;
+            margin-bottom: 8px;
+        }
+
+        .lang-box p {
+            color: #64748b;
+            font-size: 15px;
+            margin-bottom: 28px;
+        }
+
+        .lang-options {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .lang-option {
+            flex: 1;
+            min-width: 110px;
+            padding: 20px 12px 16px;
+            border-radius: 20px;
+            border: 2px solid #e9edf4;
+            background: #fafcff;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            text-align: center;
+            user-select: none;
+        }
+
+        .lang-option:hover {
+            border-color: #1a5276;
+            background: #f0f7fe;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(26, 82, 118, 0.12);
+        }
+
+        .lang-option.active {
+            border-color: #1a5276;
+            background: #1a5276;
+            color: white;
+            box-shadow: 0 8px 24px rgba(26, 82, 118, 0.25);
+        }
+
+        .lang-option.active .lang-label {
+            color: white;
+        }
+        .lang-option.active .lang-sub {
+            color: rgba(255, 255, 255, 0.75);
+        }
+
+        .lang-option .lang-flag {
+            font-size: 36px;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .lang-option .lang-label {
+            font-size: 18px;
+            font-weight: 600;
+            color: #0a2e4b;
+            display: block;
+        }
+
+        .lang-option .lang-sub {
+            font-size: 12px;
+            color: #94a3b8;
+            display: block;
+            margin-top: 2px;
+        }
+
+        /* ---- MAIN APP ---- */
+        #app {
+            width: 100%;
+            max-width: 1100px;
+            height: 95vh;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 20px 60px rgba(0, 20, 40, 0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #0a2e4b, #1a5276);
+            color: white;
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+
+        .chat-header .bot-icon {
+            background: #2ecc71;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .chat-header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+            flex-shrink: 0;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
+            flex-wrap: wrap;
+        }
+
+        /* ---- NEW: Language selector buttons ---- */
+        .lang-selector {
+            display: flex;
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .lang-selector .lang-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        .lang-selector .lang-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+        }
+
+        .lang-selector .lang-btn.active-lang {
+            background: white;
+            color: #0a2e4b;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .lang-selector .lang-btn .flag {
+            font-size: 14px;
+        }
+
+        /* ---- Existing header items ---- */
+        .header-actions .lang-badge {
+            display: none; /* Hide old badge, we have direct buttons now */
+        }
+
+        .pdf-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: white;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .pdf-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: scale(1.02);
+        }
+
+        .pdf-btn:active {
+            transform: scale(0.95);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px;
+            background: #fafcff;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            display: flex;
+            flex-direction: column;
+            max-width: 88%;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .message.bot {
+            align-self: flex-start;
+        }
+
+        .message.user {
+            align-self: flex-end;
+        }
+
+        .message .bubble {
+            padding: 14px 20px;
+            border-radius: 18px;
+            font-size: 15px;
+            line-height: 1.6;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+            word-break: break-word;
+        }
+
+        .message.bot .bubble {
+            background: white;
+            border: 1px solid #e9edf4;
+            border-bottom-left-radius: 4px;
+            color: #1e293b;
+        }
+
+        .message.user .bubble {
+            background: #1a5276;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message .label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #94a3b8;
+            margin-bottom: 4px;
+            padding-left: 4px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ---- DASHBOARD ---- */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+            margin: 8px 0 4px 0;
+            width: 100%;
+        }
+
+        .dash-card {
+            background: white;
+            border-radius: 16px;
+            padding: 14px 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+            border: 1px solid #edf2f7;
+            transition: all 0.2s;
+        }
+
+        .dash-card:hover {
+            border-color: #bdd3eb;
+            box-shadow: 0 6px 16px rgba(26, 82, 118, 0.08);
+        }
+
+        .dash-card .card-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #1a5276;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border-bottom: 2px solid #eef4fa;
+            padding-bottom: 5px;
+        }
+
+        .dash-card .card-title .icon {
+            font-size: 14px;
+        }
+
+        .dash-card .card-body {
+            font-size: 13.5px;
+            line-height: 1.6;
+            color: #1e293b;
+        }
+
+        .dash-card .card-body strong {
+            color: #0f2e44;
+        }
+
+        .dash-card .card-body ul {
+            margin: 4px 0 0 16px;
+            padding: 0;
+        }
+
+        .dash-card .card-body ul li {
+            margin-bottom: 3px;
+        }
+
+        .medicine-title-dash {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, #0a2e4b, #1a5276);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 16px;
+            margin-bottom: 2px;
+        }
+
+        .medicine-title-dash h2 {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        .medicine-title-dash .generic {
+            font-size: 14px;
+            font-weight: 400;
+            opacity: 0.85;
+            margin-left: 8px;
+        }
+
+        .brands-section {
+            margin-top: 16px;
+            border-top: 2px solid #eef4fa;
+            padding-top: 14px;
+        }
+
+        .brands-section .section-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1a5276;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .brand-box {
+            display: inline-block;
+            background: #f0f4f9;
+            border: 1px solid #d0dbe8;
+            border-radius: 30px;
+            padding: 6px 16px;
+            margin: 3px 5px 3px 0;
+            font-size: 13px;
+            font-weight: 500;
+            color: #1a5276;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .brand-box:hover {
+            background: #dce6f0;
+            border-color: #1a5276;
+        }
+
+        .brand-box.active {
+            background: #1a5276;
+            color: white;
+            border-color: #1a5276;
+        }
+
+        .brand-btn {
+            background: #f0f4f9;
+            border: 1px solid #d0dbe8;
+            border-radius: 30px;
+            padding: 5px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #1a5276;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .brand-btn:hover {
+            background: #dce6f0;
+            border-color: #1a5276;
+        }
+
+        .brand-btn.active {
+            background: #1a5276;
+            color: white;
+            border-color: #1a5276;
+        }
+
+        .brand-dropdown {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 6px 0;
+            border: 1px solid #e2e8f0;
+            margin-top: 6px;
+        }
+
+        .brand-dropdown ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .brand-dropdown li {
+            padding: 7px 14px;
+            border-bottom: 1px solid #edf2f7;
+            cursor: pointer;
+            transition: background 0.1s;
+            font-size: 13.5px;
+        }
+
+        .brand-dropdown li:last-child {
+            border-bottom: none;
+        }
+
+        .brand-dropdown li:hover {
+            background: #e2e8f0;
+        }
+
+        .brand-dropdown li .detail {
+            color: #475569;
+            font-size: 12px;
+            display: block;
+        }
+
+        /* ---- INPUT AREA ---- */
+        .input-area {
+            padding: 12px 20px 18px 20px;
+            background: white;
+            border-top: 1px solid #e9edf4;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+
+        .input-area .input-row {
+            display: flex;
+            flex: 1;
+            gap: 10px;
+            align-items: center;
+            min-width: 200px;
+        }
+
+        .input-area input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 50px;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.2s;
+            background: #f8fafc;
+            min-width: 120px;
+        }
+
+        .input-area input:focus {
+            border-color: #1a5276;
+            background: white;
+            box-shadow: 0 0 0 4px rgba(26, 82, 118, 0.1);
+        }
+
+        .input-area input::placeholder {
+            color: #94a3b8;
+        }
+
+        .input-area .btn-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .input-area button {
+            background: #1a5276;
+            color: white;
+            border: none;
+            padding: 12px 22px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .input-area button:hover {
+            background: #0a2e4b;
+            transform: scale(1.02);
+        }
+
+        .input-area button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: scale(1);
+        }
+
+        .input-area .mic-btn {
+            background: #e2e8f0;
+            color: #1e293b;
+            padding: 12px 14px;
+            border-radius: 50%;
+            font-size: 18px;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.25s;
+            border: none;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .input-area .mic-btn:hover {
+            background: #cbd5e1;
+            transform: scale(1.05);
+        }
+
+        .input-area .mic-btn.recording {
+            background: #ef4444;
+            color: white;
+            animation: pulseMic 1.2s infinite;
+        }
+
+        @keyframes pulseMic {
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+            }
+            50% {
+                box-shadow: 0 0 0 12px rgba(239, 68, 68, 0);
+            }
+        }
+
+        .mic-status {
+            font-size: 12px;
+            color: #64748b;
+            padding: 0 4px;
+            min-width: 60px;
+        }
+
+        .typing-indicator {
+            display: flex;
+            gap: 4px;
+            padding: 8px 0;
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            background: #94a3b8;
+            border-radius: 50%;
+            display: inline-block;
+            animation: bounce 1.4s infinite both;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .typing-indicator span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes bounce {
+            0%,
+            80%,
+            100% {
+                transform: scale(0);
+            }
+            40% {
+                transform: scale(1);
+            }
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 5px;
+        }
+        .chat-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* ---- RESPONSIVE ---- */
+        @media (max-width: 700px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .chat-messages {
+                padding: 14px;
+            }
+            .input-area {
+                padding: 10px 12px 14px;
+            }
+            .message {
+                max-width: 95%;
+            }
+            .header-actions .lang-badge {
+                display: none;
+            }
+            .lang-box {
+                padding: 32px 20px 28px;
+                margin: 0 16px;
+            }
+            .lang-options {
+                gap: 10px;
+            }
+            .lang-option {
+                min-width: 80px;
+                padding: 14px 8px 12px;
+            }
+            .lang-option .lang-flag {
+                font-size: 28px;
+            }
+            .lang-option .lang-label {
+                font-size: 15px;
+            }
+            .input-area .input-row {
+                flex-wrap: wrap;
+            }
+            .input-area .btn-group {
+                width: 100%;
+                justify-content: flex-end;
+            }
+            .input-area button {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+            .input-area .mic-btn {
+                width: 42px;
+                height: 42px;
+                font-size: 16px;
+            }
+            .lang-selector .lang-btn {
+                padding: 2px 8px;
+                font-size: 11px;
+            }
+            .lang-selector .lang-btn .flag {
+                font-size: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            .chat-header h1 {
+                font-size: 15px;
+            }
+            .pdf-btn span {
+                display: none;
+            }
+            .lang-box h2 {
+                font-size: 20px;
+            }
+            .lang-selector .lang-btn .label-text {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================================
+    LANGUAGE SELECTOR OVERLAY (first visit)
+    ============================================================ -->
+    <div id="langOverlay">
+        <div class="lang-box">
+            <h2>🌍 Choose Your Language</h2>
+            <p id="langSubText">Select your preferred language for the entire chat experience.</p>
+            <div class="lang-options">
+                <div class="lang-option" data-lang="en">
+                    <span class="lang-flag">🇬🇧</span>
+                    <span class="lang-label">English</span>
+                    <span class="lang-sub">English</span>
+                </div>
+                <div class="lang-option" data-lang="ur">
+                    <span class="lang-flag">🇵🇰</span>
+                    <span class="lang-label">اردو</span>
+                    <span class="lang-sub">Urdu</span>
+                </div>
+                <div class="lang-option" data-lang="sd">
+                    <span class="lang-flag">🇵🇰</span>
+                    <span class="lang-label">سنڌي</span>
+                    <span class="lang-sub">Sindhi</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    MAIN APP
+    ============================================================ -->
+    <div id="app">
+        <div class="chat-header">
+            <div class="bot-icon">💊</div>
+            <h1 id="appTitle">PharmaBot AI</h1>
+            <div class="header-actions">
+                <div class="lang-selector" id="langSelector">
+                    <button class="lang-btn active-lang" data-lang="en">
+                        <span class="flag">🇬🇧</span>
+                        <span class="label-text">English</span>
+                    </button>
+                    <button class="lang-btn" data-lang="ur">
+                        <span class="flag">🇵🇰</span>
+                        <span class="label-text">Urdu</span>
+                    </button>
+                    <button class="lang-btn" data-lang="sd">
+                        <span class="flag">🇵🇰</span>
+                        <span class="label-text">Sindhi</span>
+                    </button>
+                </div>
+                <button class="pdf-btn" id="downloadPdfBtn">📄 <span id="pdfLabel">Download PDF</span></button>
+            </div>
+        </div>
+
+        <div id="chatMessages" class="chat-messages"></div>
+
+        <div class="input-area">
+            <div class="input-row">
+                <input type="text" id="userInput" placeholder="Type your message..." autofocus>
+                <button class="mic-btn" id="micBtn" title="Click to record voice">🎤</button>
+                <span class="mic-status" id="micStatus">⚪</span>
+            </div>
+            <div class="btn-group">
+                <button id="sendBtn">Send →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================
+    JAVASCRIPT
+    ============================================================ -->
+    <script>
+        // =================================================================
+        // 1. TRANSLATIONS – UI & MEDICINE DATA
+        // =================================================================
+        const LANG = {
+            EN: 'en',
+            UR: 'ur',
+            SD: 'sd'
+        };
+
+        // ----- UI translations -----
+        const UI = {
+            en: {
+                appTitle: 'PharmaBot AI',
+                langSub: 'Select your preferred language for the entire chat experience.',
+                pdfLabel: 'Download PDF',
+                badgeLabel: 'English',
+                placeholder: 'Type your message...',
+                sendBtn: 'Send →',
+                micStatusIdle: '⚪',
+                micStatusListening: '🔴 Listening...',
+                micStatusDetected: '✅ Detected',
+                botLabel: '💊 PharmaBot',
+                userLabel: '👤 You',
+                welcome: `👋 <strong>Hi, how may I help you today?</strong><br>Which medicine do you need help with?<br><span style="font-size:13px; color:#64748b;">(Available: Panadol, Augmentin, Centrum)</span>`,
+                notFound: `❌ I couldn't find that medicine. Please choose from: <strong>Panadol, Augmentin, or Centrum</strong>.`,
+                followUp: (name) =>
+                    `✅ Great! Now, <strong>what can I explain to you</strong> in more detail?<br><span style="font-size:13px; color:#64748b;">(e.g., ask about "side effects", "indications", "how to take", "interactions", etc.)</span>`,
+                noInfo: (query, name) =>
+                    `🤔 I couldn't find specific info on "${query}".<br><br>I can explain: <strong>Indications, How to Take, Side Effects, Contraindications, Patient History, Warnings, Drug Interactions, Diet & Lifestyle, Brands & Pricing, Dosage Forms, Onset, Storage, Missed Dose</strong>.<br>Please ask about one of these for <strong>${name}</strong>. (Or type "new" to restart.)`,
+                restart: `🔄 Restarted. Hi, how may I help you today? Which medicine do you need help with? (Panadol, Augmentin, Centrum)`,
+                selectedProduct: (name) => `📦 <strong>Selected product:</strong><br>`,
+                dashboardTitle: (name, generic) =>
+                    `<h2>${name} <span class="generic">(${generic})</span></h2>`,
+                brandsTitle: '🏷️ Available Variants',
+                manufacturersTitle: '🏷️ Manufacturers & Products',
+                productDetail: (product, strength, pack, price, per, mfr) =>
+                    `<strong>${product}</strong> (${strength})<br>Pack: ${pack}<br>Price: Rs. ${price} (Rs. ${per}/tablet)<br>Manufacturer: ${mfr}`,
+                variantDetail: (name, strength, pack, price, bestFor) => {
+                    let s = `<strong>${name}</strong><br>`;
+                    if (strength) s += `Strength: ${strength}<br>`;
+                    if (pack) s += `Pack: ${pack}<br>`;
+                    if (price) s += `Price: ${price}<br>`;
+                    if (bestFor) s += `Best for: ${bestFor}`;
+                    return s;
+                },
+                cardTitles: {
+                    indications: 'Indications',
+                    howToTake: 'How to Take',
+                    sideEffects: 'Side Effects',
+                    contraindications: 'Contraindications',
+                    patientHistory: 'Patient History Cautions',
+                    warnings: 'Warnings (Misuse/Overuse)',
+                    interactions: 'Drug Interactions',
+                    diet: 'Diet & Lifestyle',
+                    altForms: 'Alternative Dosage Forms',
+                    onset: 'Onset of Action',
+                    storage: 'Storage',
+                    missedDose: 'Missed Dose / Overdose'
+                },
+                cardIcons: {
+                    indications: '🩺',
+                    howToTake: '📋',
+                    sideEffects: '⚠️',
+                    contraindications: '🚫',
+                    patientHistory: '📋',
+                    warnings: '🔔',
+                    interactions: '🔗',
+                    diet: '🍽️',
+                    altForms: '💊',
+                    onset: '⏳',
+                    storage: '🌡️',
+                    missedDose: '⏰'
+                },
+                fieldLabels: {
+                    sideEffects: 'Side Effects',
+                    indications: 'Indications',
+                    contraindications: 'Contraindications',
+                    patientHistory: 'Patient History Cautions',
+                    warnings: 'Warnings',
+                    altBrands: 'Brands & Pricing',
+                    altForms: 'Alternative Dosage Forms',
+                    onset: 'Onset of Action',
+                    storage: 'Storage',
+                    missedDose: 'Missed Dose / Overdose',
+                    interactions: 'Drug Interactions',
+                    diet: 'Diet & Lifestyle',
+                    howToTake: 'How to Take'
+                }
+            },
+            ur: {
+                appTitle: 'فارمابوٹ AI',
+                langSub: 'پوری چیٹ کے تجربے کے لیے اپنی پسندیدہ زبان منتخب کریں۔',
+                pdfLabel: 'پی ڈی ایف ڈاؤن لوڈ کریں',
+                badgeLabel: 'اردو',
+                placeholder: 'اپنا پیغام ٹائپ کریں...',
+                sendBtn: 'بھیجیں →',
+                micStatusIdle: '⚪',
+                micStatusListening: '🔴 سن رہا ہے...',
+                micStatusDetected: '✅ دریافت ہوا',
+                botLabel: '💊 فارمابوٹ',
+                userLabel: '👤 آپ',
+                welcome: `👋 <strong>آج میں آپ کی کیسے مدد کر سکتا ہوں؟</strong><br>آپ کو کس دوا کے بارے میں معلومات چاہیے؟<br><span style="font-size:13px; color:#64748b;">(دستیاب: پیناڈول، آگمینٹن، سینٹرم)</span>`,
+                notFound: `❌ مجھے یہ دوا نہیں ملی۔ براہ کرم ان میں سے انتخاب کریں: <strong>پیناڈول، آگمینٹن، یا سینٹرم</strong>۔`,
+                followUp: (name) =>
+                    `✅ بہت اچھا! اب، <strong>آپ کس بارے میں مزید تفصیل چاہتے ہیں؟</strong><br><span style="font-size:13px; color:#64748b;">(مثال کے طور پر: "مضر اثرات"، "استعمال کیسے کریں"، "تعاملات" وغیرہ)</span>`,
+                noInfo: (query, name) =>
+                    `🤔 مجھے "${query}" کے بارے میں مخصوص معلومات نہیں ملی۔<br><br>میں ان موضوعات پر وضاحت دے سکتا ہوں: <strong>استعمالات، استعمال کا طریقہ، مضر اثرات، احتیاطیں، مریض کی تاریخ، انتباہات، دوائیوں کے تعاملات، خوراک اور طرز زندگی، برانڈز اور قیمتیں، متبادل شکلیں، اثر کا آغاز، ذخیرہ کرنے کا طریقہ، بھولی ہوئی خوراک</strong>۔<br>براہ کرم <strong>${name}</strong> کے بارے میں ان میں سے کسی ایک کے بارے میں پوچھیں۔ (نیا شروع کرنے کے لیے "نیا" ٹائپ کریں)`,
+                restart: `🔄 دوبارہ شروع کیا۔ آج میں آپ کی کیسے مدد کر سکتا ہوں؟ آپ کو کس دوا کے بارے میں معلومات چاہیے؟ (پیناڈول، آگمینٹن، سینٹرم)`,
+                selectedProduct: (name) => `📦 <strong>منتخب کردہ پروڈکٹ:</strong><br>`,
+                dashboardTitle: (name, generic) =>
+                    `<h2>${name} <span class="generic">(${generic})</span></h2>`,
+                brandsTitle: '🏷️ دستیاب مختلف اقسام',
+                manufacturersTitle: '🏷️ مینوفیکچررز اور مصنوعات',
+                productDetail: (product, strength, pack, price, per, mfr) =>
+                    `<strong>${product}</strong> (${strength})<br>پیک: ${pack}<br>قیمت: روپے ${price} (روپے ${per}/ٹیبلیٹ)<br>مینوفیکچرر: ${mfr}`,
+                variantDetail: (name, strength, pack, price, bestFor) => {
+                    let s = `<strong>${name}</strong><br>`;
+                    if (strength) s += `طاقت: ${strength}<br>`;
+                    if (pack) s += `پیک: ${pack}<br>`;
+                    if (price) s += `قیمت: ${price}<br>`;
+                    if (bestFor) s += `بہترین استعمال: ${bestFor}`;
+                    return s;
+                },
+                cardTitles: {
+                    indications: 'استعمالات',
+                    howToTake: 'استعمال کا طریقہ',
+                    sideEffects: 'مضر اثرات',
+                    contraindications: 'احتیاطیں',
+                    patientHistory: 'مریض کی تاریخ سے احتیاط',
+                    warnings: 'انتباہات (غلط استعمال / زیادہ استعمال)',
+                    interactions: 'دوائیوں کے تعاملات',
+                    diet: 'خوراک اور طرز زندگی',
+                    altForms: 'متبادل شکلیں',
+                    onset: 'اثر کا آغاز',
+                    storage: 'ذخیرہ کرنے کا طریقہ',
+                    missedDose: 'بھولی ہوئی خوراک / زیادہ خوراک'
+                },
+                cardIcons: {
+                    indications: '🩺',
+                    howToTake: '📋',
+                    sideEffects: '⚠️',
+                    contraindications: '🚫',
+                    patientHistory: '📋',
+                    warnings: '🔔',
+                    interactions: '🔗',
+                    diet: '🍽️',
+                    altForms: '💊',
+                    onset: '⏳',
+                    storage: '🌡️',
+                    missedDose: '⏰'
+                },
+                fieldLabels: {
+                    sideEffects: 'مضر اثرات',
+                    indications: 'استعمالات',
+                    contraindications: 'احتیاطیں',
+                    patientHistory: 'مریض کی تاریخ سے احتیاط',
+                    warnings: 'انتباہات',
+                    altBrands: 'برانڈز اور قیمتیں',
+                    altForms: 'متبادل شکلیں',
+                    onset: 'اثر کا آغاز',
+                    storage: 'ذخیرہ کرنے کا طریقہ',
+                    missedDose: 'بھولی ہوئی خوراک / زیادہ خوراک',
+                    interactions: 'دوائیوں کے تعاملات',
+                    diet: 'خوراک اور طرز زندگی',
+                    howToTake: 'استعمال کا طریقہ'
+                }
+            },
+            sd: {
+                appTitle: 'فارمابوٽ AI',
+                langSub: 'پوري چيٽ جي تجربي لاءِ پنهنجي پسنديدہ ٻولي چونڊيو.',
+                pdfLabel: 'PDF ڊائون لوڊ ڪريو',
+                badgeLabel: 'سنڌي',
+                placeholder: 'پنهنجو پيغام ٽائيپ ڪريو...',
+                sendBtn: 'موڪليو →',
+                micStatusIdle: '⚪',
+                micStatusListening: '🔴 ٻڌي رهيو آهي...',
+                micStatusDetected: '✅ معلوم ٿيو',
+                botLabel: '💊 فارمابوٽ',
+                userLabel: '👤 توهان',
+                welcome: `👋 <strong>سلام، اڄ آئون توهان جي ڪيئن مدد ڪري سگهان ٿو؟</strong><br>توهان کي ڪهڙي دوا بابت معلومات گهرجي؟<br><span style="font-size:13px; color:#64748b;">(دستياب: پيناڊول، آگمينٽن، سينٽرم)</span>`,
+                notFound: `❌ مون کي اها دوا نه ملي. مهرباني ڪري انهن مان چونڊيو: <strong>پيناڊول، آگمينٽن، يا سينٽرم</strong>.`,
+                followUp: (name) =>
+                    `✅ تمام سٺو! هاڻي، <strong>توهان ڪهڙي بابت وڌيڪ تفصيل چاهيو ٿا؟</strong><br><span style="font-size:13px; color:#64748b;">(مثال طور: "ضمني اثرات"، "ڪيئن وٺجي"، "تعاملات" وغيره)</span>`,
+                noInfo: (query, name) =>
+                    `🤔 مون کي "${query}" بابت مخصوص معلومات نه ملي.<br><br>آئون انهن عنوانن تي وضاحت ڏئي سگهان ٿو: <strong>استعمال، استعمال جو طريقو، ضمني اثرات، احتياط، مريض جي تاريخ، انتباہ، دوائن جا تعامل، خوراڪ ۽ طرز زندگي، برانڊز ۽ قيمتون، متبادل شڪلون، اثر جي شروعات، ذخيرو ڪرڻ جو طريقو، وسري ويل خوراڪ</strong>.<br>مهرباني ڪري <strong>${name}</strong> بابت انهن مان ڪنهن هڪ بابت پڇو. (نئون شروع ڪرڻ لاءِ "نئون" ٽائيپ ڪريو)`,
+                restart: `🔄 ٻيهر شروع ڪيو. اڄ آئون توهان جي ڪيئن مدد ڪري سگهان ٿو؟ توهان کي ڪهڙي دوا بابت معلومات گهرجي؟ (پيناڊول، آگمينٽن، سينٽرم)`,
+                selectedProduct: (name) => `📦 <strong>چونڊيل پراڊڪٽ:</strong><br>`,
+                dashboardTitle: (name, generic) =>
+                    `<h2>${name} <span class="generic">(${generic})</span></h2>`,
+                brandsTitle: '🏷️ دستياب مختلف قسمون',
+                manufacturersTitle: '🏷️ ٺاهيندڙ ۽ پراڊڪٽون',
+                productDetail: (product, strength, pack, price, per, mfr) =>
+                    `<strong>${product}</strong> (${strength})<br>پيڪ: ${pack}<br>قيمت: روپيا ${price} (روپيا ${per}/ٽيبلٽ)<br>ٺاهيندڙ: ${mfr}`,
+                variantDetail: (name, strength, pack, price, bestFor) => {
+                    let s = `<strong>${name}</strong><br>`;
+                    if (strength) s += `طاقت: ${strength}<br>`;
+                    if (pack) s += `پيڪ: ${pack}<br>`;
+                    if (price) s += `قيمت: ${price}<br>`;
+                    if (bestFor) s += `بهترين استعمال: ${bestFor}`;
+                    return s;
+                },
+                cardTitles: {
+                    indications: 'استعمال',
+                    howToTake: 'استعمال جو طريقو',
+                    sideEffects: 'ضمني اثرات',
+                    contraindications: 'احتياط',
+                    patientHistory: 'مريض جي تاريخ جا احتياط',
+                    warnings: 'انتباہ (غلط استعمال / گهڻو استعمال)',
+                    interactions: 'دوائن جا تعامل',
+                    diet: 'خوراڪ ۽ طرز زندگي',
+                    altForms: 'متبادل شڪلون',
+                    onset: 'اثر جي شروعات',
+                    storage: 'ذخيرو ڪرڻ جو طريقو',
+                    missedDose: 'وسري ويل خوراڪ / گهڻي خوراڪ'
+                },
+                cardIcons: {
+                    indications: '🩺',
+                    howToTake: '📋',
+                    sideEffects: '⚠️',
+                    contraindications: '🚫',
+                    patientHistory: '📋',
+                    warnings: '🔔',
+                    interactions: '🔗',
+                    diet: '🍽️',
+                    altForms: '💊',
+                    onset: '⏳',
+                    storage: '🌡️',
+                    missedDose: '⏰'
+                },
+                fieldLabels: {
+                    sideEffects: 'ضمني اثرات',
+                    indications: 'استعمال',
+                    contraindications: 'احتياط',
+                    patientHistory: 'مريض جي تاريخ جا احتياط',
+                    warnings: 'انتباہ',
+                    altBrands: 'برانڊز ۽ قيمتون',
+                    altForms: 'متبادل شڪلون',
+                    onset: 'اثر جي شروعات',
+                    storage: 'ذخيرو ڪرڻ جو طريقو',
+                    missedDose: 'وسري ويل خوراڪ / گهڻي خوراڪ',
+                    interactions: 'دوائن جا تعامل',
+                    diet: 'خوراڪ ۽ طرز زندگي',
+                    howToTake: 'استعمال جو طريقو'
+                }
+            }
+        };
+
+        // ----- MEDICINE DATA translations -----
+        const MEDICINE_DATA = {
+
+            panadol: {
+                en: {
+                    name: 'Panadol',
+                    generic: 'Paracetamol (OTC)',
+                    indications: 'Panadol relieves pain and lowers fever. It helps with headache, migraine, backache, muscle and period pain, toothache, sore throat, and the aches of colds and flu.',
+                    howToTake: '• Adults & kids 16+: 1–2 tablets every 4–6 hours. Max 8 tablets in 24 hours.<br>• Kids 10–15: 1 tablet every 4–6 hours. Max 4 tablets in 24 hours.<br>• Never take doses closer than 4 hours apart.<br>• Don\'t use for more than 3 days in a row without a doctor\'s advice.<br>• Not for children under 10 (regular strength tablets).',
+                    sideEffects: '<strong>Common:</strong> Mild skin rash or itching.<br><br><strong>Serious:</strong> Face, lips, or throat swelling, trouble breathing; Skin peeling or mouth ulcers; bruising or bleeding; Yellow skin/eyes, sudden weight loss, loss of appetite (liver warning signs); Fast, deep breathing with nausea and vomiting (a rare but serious blood condition).',
+                    contraindications: '• Liver or kidney problems<br>• Being underweight or malnourished<br>• Regular/heavy alcohol use<br>• A severe infection or illness<br>• Taking flucloxacillin (an antibiotic)',
+                    patientHistory: '• Liver or kidney problems<br>• Being underweight or malnourished<br>• Regular/heavy alcohol use<br>• A severe infection or illness<br>• Taking flucloxacillin (an antibiotic)',
+                    warnings: '• Don\'t exceed 8 tablets (4g) in 24 hours.<br>• Get checked – liver damage from paracetamol shows up late.<br>• Long-term daily use in people who are unwell, malnourished, or drink heavily raises the risk of a rare blood problem (metabolic acidosis).',
+                    altForms: '• Regular tablets (500 mg): adults and children 10+<br>• Lower age groups need smaller, weight‑based doses.',
+                    onset: 'Not specified',
+                    storage: 'Store below 30°C, cool dry place.',
+                    missedDose: '• Missed dose: just take the next one on schedule.<br>• Overdose: call a doctor immediately, even if you feel completely fine. Paracetamol overdose damages the liver silently before symptoms show.',
+                    interactions: '• <strong>Flucloxacillin (antibiotic):</strong> rare but serious, can cause a dangerous acid imbalance in the blood.<br>• <strong>Warfarin/blood thinners:</strong> occasional doses are fine, daily regular use raises bleeding risk.<br>• <strong>Metoclopramide, domperidone (anti‑nausea), colestyramine (cholesterol):</strong> can change how fast/well Panadol works – check with your pharmacist.',
+                    variants: [
+                        { name: 'Panadol Regular', strength: 'Paracetamol 500mg', pack: '200 tabs',
+                        price: 'Rs. 36.35' },
+                        { name: 'Panadol Extra', strength: '+ Caffeine 65mg', pack: '100 tabs',
+                        price: 'Rs. 60.00' },
+                        { name: 'Panadol Extend', strength: '665mg, slow-release', pack: '100 tabs',
+                            price: 'Rs. 76.51' },
+                        { name: 'Panadol CF Day', strength: '+ Phenylephrine + Caffeine', pack: '100 tabs',
+                            price: 'Rs. 60.00' },
+                        { name: 'Panadol Ultra', strength: '+ Caffeine + Codeine', pack: '20 tabs',
+                            price: 'Rs. 37.50' }
+                    ]
+                },
+                ur: {
+                    name: 'پیناڈول',
+                    generic: 'پیراسیٹامول (او ٹی سی)',
+                    indications: 'پیناڈول درد کو دور کرتا ہے اور بخار کو کم کرتا ہے۔ یہ سر درد، مائیگرین، کمر درد، پٹھوں اور ماہواری کے درد، دانت کے درد، گلے کی سوزش، اور نزلہ زکام اور فلو کے درد میں مدد کرتا ہے۔',
+                    howToTake: '• بالغ اور 16+ بچے: 4-6 گھنٹے بعد 1-2 گولیاں۔ 24 گھنٹوں میں زیادہ سے زیادہ 8 گولیاں۔<br>• 10-15 سال کے بچے: 4-6 گھنٹے بعد 1 گولی۔ 24 گھنٹوں میں زیادہ سے زیادہ 4 گولیاں۔<br>• خوراکوں کے درمیان 4 گھنٹے سے کم کا فاصلہ نہ رکھیں۔<br>• ڈاکٹر کے مشورے کے بغیر 3 دن سے زیادہ استعمال نہ کریں۔<br>• 10 سال سے کم عمر کے بچوں کے لیے نہیں (معیاری گولیاں)۔',
+                    sideEffects: '<strong>عام:</strong> ہلکی جلد کی خارش یا دانے۔<br><br><strong>شدید:</strong> چہرے، ہونٹوں، یا گلے کا سوجن، سانس لینے میں دشواری؛ جلد کا چھلکا یا منہ کے چھالے؛ زخم یا خون بہنا؛ جلد یا آنکھوں کا پیلا ہونا، اچانک وزن میں کمی، بھوک میں کمی (جگر کے انتباہی علامات)؛ متلی اور الٹی کے ساتھ تیز، گہری سانس (خون کی ایک نایاب لیکن سنگین حالت)۔',
+                    contraindications: '• جگر یا گردے کے مسائل<br>• کم وزن یا غذائیت کی کمی<br>• باقاعدہ / زیادہ شراب نوشی<br>• شدید انفیکشن یا بیماری<br>• فلوکلوکساسیلن (اینٹی بائیوٹک) کا استعمال',
+                    patientHistory: '• جگر یا گردے کے مسائل<br>• کم وزن یا غذائیت کی کمی<br>• باقاعدہ / زیادہ شراب نوشی<br>• شدید انفیکشن یا بیماری<br>• فلوکلوکساسیلن (اینٹی بائیوٹک) کا استعمال',
+                    warnings: '• 24 گھنٹوں میں 8 گولیوں (4 گرام) سے تجاوز نہ کریں۔<br>• چیک کروائیں – پیراسیٹامول سے جگر کا نقصان دیر سے ظاہر ہوتا ہے۔<br>• بیمار، کمزور، یا زیادہ شراب پینے والے لوگوں میں طویل مدتی روزانہ استعمال خون کے ایک نایاب مسئلے (میٹابولک ایسڈوسس) کا خطرہ بڑھاتا ہے۔',
+                    altForms: '• معیاری گولیاں (500 ملی گرام): بالغ اور 10+ بچے<br>• کم عمر کے گروپوں کو وزن کی بنیاد پر چھوٹی خوراکیں درکار ہیں۔',
+                    onset: 'مخصوص نہیں',
+                    storage: '30°C سے نیچے، ٹھنڈی خشک جگہ پر ذخیرہ کریں۔',
+                    missedDose: '• بھولی ہوئی خوراک: اگلی خوراک شیڈول کے مطابق لیں۔<br>• زیادہ خوراک: فوراً ڈاکٹر کو کال کریں، چاہے آپ مکمل طور پر ٹھیک محسوس کریں۔ پیراسیٹامول کی زیادہ خوراک علامات ظاہر ہونے سے پہلے خاموشی سے جگر کو نقصان پہنچاتی ہے۔',
+                    interactions: '• <strong>فلوکلوکساسیلن (اینٹی بائیوٹک):</strong> نایاب لیکن سنگین، خون میں تیزابیت کا خطرناک عدم توازن پیدا کر سکتا ہے۔<br>• <strong>وارفرین / خون پتلا کرنے والے:</strong> کبھی کبھار خوراک ٹھیک ہے، روزانہ باقاعدہ استعمال خون بہنے کا خطرہ بڑھاتا ہے۔<br>• <strong>میٹوکلوپرامائیڈ، ڈومپیریڈون (متلی روکنے والی)، کولیسٹیرامین (کولیسٹرول):</strong> پیناڈول کے کام کرنے کی رفتار / معیار کو تبدیل کر سکتے ہیں – اپنے فارماسسٹ سے چیک کریں۔',
+                    variants: [
+                        { name: 'پیناڈول ریگولر', strength: 'پیراسیٹامول 500mg', pack: '200 گولیاں',
+                            price: 'روپے 36.35' },
+                        { name: 'پیناڈول ایکسٹرا', strength: '+ کیفین 65mg', pack: '100 گولیاں',
+                            price: 'روپے 60.00' },
+                        { name: 'پیناڈول ایکسٹینڈ', strength: '665mg, آہستہ ریلیز', pack: '100 گولیاں',
+                            price: 'روپے 76.51' },
+                        { name: 'پیناڈول سی ایف ڈے', strength: '+ فینائل ایفرین + کیفین', pack: '100 گولیاں',
+                            price: 'روپے 60.00' },
+                        { name: 'پیناڈول الٹرا', strength: '+ کیفین + کوڈین', pack: '20 گولیاں',
+                            price: 'روپے 37.50' }
+                    ]
+                },
+                sd: {
+                    name: 'پيناڊول',
+                    generic: 'پيراسيٽامول (OTC)',
+                    indications: 'پيناڊول درد کي ختم ڪري ٿو ۽ بخار گهٽائي ٿو. اهو سر درد، مائيگرين، پٺي جو درد، عضلات ۽ حيض جو درد، ڏند جو درد، ڳلي جي سوزش، ۽ زڪام ۽ فلو جي درد ۾ مدد ڪري ٿو.',
+                    howToTake: '• بالغ ۽ 16+ ٻار: 4-6 ڪلاڪ بعد 1-2 گوليون. 24 ڪلاڪن ۾ وڌ ۾ وڌ 8 گوليون.<br>• 10-15 سالن جا ٻار: 4-6 ڪلاڪ بعد 1 گولي. 24 ڪلاڪن ۾ وڌ ۾ وڌ 4 گوليون.<br>• خوراکن جي وچ ۾ 4 ڪلاڪ کان گهٽ جو فاصلو نه رکو.<br>• ڊاڪٽر جي صلاح کان سواءِ 3 ڏينهن کان وڌيڪ استعمال نه ڪريو.<br>• 10 سال کان گهٽ عمر وارن ٻارن لاءِ نه (معياري گوليون).',
+                    sideEffects: '<strong>عام:</strong> هلڪي چمڙي جي خارش يا داڻا.<br><br><strong>سخت:</strong> چهري، چپن، يا ڳلي جي سوجن، سانس وٺڻ ۾ مشڪل؛ چمڙي جو ڇلڻ يا وات جا ڦڦڙ؛ زخم يا رت وهڻ؛ چمڙي يا اکين جو پيلو ٿيڻ، اوچتو وزن گهٽجڻ، بک گهٽجڻ (جگر جي انتباهي نشانيون)؛ متلي ۽ الٽي سان تيز، گهري سانس (رت جي ناياب پر سخت حالت).',
+                    contraindications: '• جگر يا گردن جا مسئلا<br>• گهٽ وزن يا غذائيت جي گهٽتائي<br>• باقاعده / گهڻي شراب نوشي<br>• سخت انفيڪشن يا بيماري<br>• فلوڪلوڪساسيلن (اينٽي بايوٽڪ) جو استعمال',
+                    patientHistory: '• جگر يا گردن جا مسئلا<br>• گهٽ وزن يا غذائيت جي گهٽتائي<br>• باقاعده / گهڻي شراب نوشي<br>• سخت انفيڪشن يا بيماري<br>• فلوڪلوڪساسيلن (اينٽي بايوٽڪ) جو استعمال',
+                    warnings: '• 24 ڪلاڪن ۾ 8 گولين (4 گرام) کان وڌيڪ نه وٺو.<br>• چيڪ ڪرايو – پيراسيٽامول کان جگر جو نقصان دير سان ظاهر ٿيندو آهي.<br>• بيمار، ڪمزور، يا گهڻو شراب پيئندڙ ماڻهن ۾ ڊگهي مدي وارو روزانو استعمال رت جي ناياب مسئلي (ميٽابولڪ ايسڊوسس) جو خطرو وڌائي ٿو.',
+                    altForms: '• معياري گوليون (500 mg): بالغ ۽ 10+ ٻار<br>• گهٽ عمر وارن گروپن کي وزن جي بنياد تي ننڍيون خوراڪون گهرجن.',
+                    onset: 'مخصوص نه',
+                    storage: '30°C کان هيٺ، ٿڌي خشڪ جاءِ تي ذخيرو ڪريو.',
+                    missedDose: '• وسري ويل خوراڪ: ايندڙ خوراڪ شيڊول مطابق وٺو.<br>• گهڻي خوراڪ: فوري طور ڊاڪٽر کي فون ڪريو، جيتوڻيڪ توهان مڪمل طور تي ٺيڪ محسوس ڪريو. پيراسيٽامول جي گهڻي خوراڪ علامتون ظاهر ٿيڻ کان اڳ خاموشي سان جگر کي نقصان پهچائي ٿي.',
+                    interactions: '• <strong>فلوڪلوڪساسيلن (اينٽي بايوٽڪ):</strong> ناياب پر سخت، رت ۾ تيزابيت جو خطرناڪ عدم توازن پيدا ڪري سگهي ٿو.<br>• <strong>وارفرين / رت پتلو ڪندڙ:</strong> ڪڏهن ڪڏهن خوراڪ ٺيڪ آهي، روزانو باقاعده استعمال رت وهڻ جو خطرو وڌائي ٿو.<br>• <strong>ميٽوڪلوپرامائيڊ، ڊومپيريڊون (متلي روڪيندڙ)، ڪوليسٽيرامين (ڪوليسٽرول):</strong> پيناڊول جي ڪم ڪرڻ جي رفتار / معيار کي تبديل ڪري سگهن ٿا – پنهنجي فارماسسٽ سان چيڪ ڪريو.',
+                    variants: [
+                        { name: 'پيناڊول ريگولر', strength: 'پيراسيٽامول 500mg', pack: '200 گوليون',
+                            price: 'روپيا 36.35' },
+                        { name: 'پيناڊول ايڪسٽرا', strength: '+ ڪيفين 65mg', pack: '100 گوليون',
+                            price: 'روپيا 60.00' },
+                        { name: 'پيناڊول ايڪسٽينڊ', strength: '665mg, سست رليز', pack: '100 گوليون',
+                            price: 'روپيا 76.51' },
+                        { name: 'پيناڊول CF ڏينهن', strength: '+ فينائل ايفرين + ڪيفين', pack: '100 گوليون',
+                            price: 'روپيا 60.00' },
+                        { name: 'پيناڊول الٽرا', strength: '+ ڪيفين + ڪوڊين', pack: '20 گوليون',
+                            price: 'روپيا 37.50' }
+                    ]
+                }
+            },
+
+            augmentin: {
+                en: {
+                    name: 'Augmentin',
+                    generic: 'Amoxicillin + Clavulanic Acid',
+                    indications: 'Bacterial infections including:<br>• Ear, sinus and throat infections<br>• Chest and lung infections<br>• Urine infections (UTI)<br>• Skin and soft tissue infections<br>• Dental infections<br>• Bone and joint infections',
+                    sideEffects: '<strong>Common:</strong> Loose stools or diarrhea, nausea or vomiting, mild skin rash, vaginal thrush (yeast infection).<br><br><strong>Serious:</strong> Heavy or bloody diarrhea with stomach cramps, widespread rash/blistering/peeling skin, swelling of face/lips/throat or trouble breathing, yellow skin/eyes (liver trouble), repeated vomiting soon after a dose (especially in children), severe ongoing stomach pain.',
+                    contraindications: 'Anyone who has had a serious reaction before (e.g., sudden swelling of face/throat, trouble breathing, severe body‑wide skin reaction) after taking an antibiotic.<br>Anyone who turned yellow (skin/eyes) or had liver trouble before with this type of medicine.',
+                    patientHistory: '• Liver or kidney problems<br>• Glandular fever (mono) – can trigger a bad rash<br>• History of reacting to several different medicines<br>• Trouble passing urine<br>• Pregnancy, planning pregnancy, or breastfeeding<br>• On blood‑thinning medicine (e.g., warfarin)',
+                    warnings: '<strong>Misuse & overuse warnings:</strong><br>• Don\'t use antibiotics left over from a past illness<br>• Don\'t share your medicine with anyone else<br>• Don\'t stop early just because you feel fine – finish the full course<br>• Don\'t take for colds, flu, or sore throats from a virus – it won\'t help<br>• Don\'t continue past 14 days without your doctor checking in',
+                    altForms: '• Tablets (625 mg, 1 g): for adults and children over 12, weighing 40 kg or more<br>• Chewable tablets: for younger children who can chew<br>• Oral liquid (suspension): for infants and young children, mixed by pharmacist, dosed by weight',
+                    onset: 'Peak blood levels in 1‑2 hours after oral intake.',
+                    storage: 'Below 25°C, in a dry place.',
+                    missedDose: 'Take it as soon as you remember, then wait about 4 hours before the next dose. Never double up to catch up.<br><br><strong>If too much taken:</strong> Watch for upset stomach, vomiting, diarrhea, or fits. Call a doctor right away and take the medicine box with you.',
+                    interactions: '• <strong>Arthritis or joint disease medicine:</strong> may increase side effects or cause a skin rash.<br>• <strong>Blood thinners (e.g., warfarin):</strong> may increase the risk of bleeding.<br>• <strong>Birth control pills:</strong> may reduce effectiveness – consider additional contraception.<br>• <strong>Arthritis or cancer medicine:</strong> may increase side effects.',
+                    diet: '• Take each dose <strong>with food</strong> to protect your stomach.<br>• Dairy is fine – Augmentin doesn\'t clash with milk or calcium.<br>• Yogurt or kefir during treatment (and for 2–4 weeks after) can help restore gut bacteria.<br>• Bananas, oats, garlic, and onions feed the good bacteria in your gut.<br>• Drink plenty of water.<br>• Skip alcohol and very sugary foods while treating the infection.',
+                    brandsData: {
+                        "GSK": [
+                            { product: "Augmentin", strength: "1 Gram (1000 mg)", pack: "12 Tablets",
+                                price: "674.25", per: "56.18" },
+                            { product: "Augmentin", strength: "625 mg", pack: "6 Tablets", price: "273.60",
+                                per: "45.60" },
+                            { product: "Augmentin", strength: "375 mg", pack: "6 Tablets", price: "182.00",
+                                per: "30.33" }
+                        ],
+                        "Bosch": [
+                            { product: "Calamox", strength: "1 Gram (1000 mg)", pack: "6 Tablets",
+                                price: "531.33", per: "88.55" },
+                            { product: "Calamox", strength: "625 mg", pack: "12 Tablets", price: "313.30",
+                                per: "26.11" },
+                            { product: "Calamox", strength: "375 mg", pack: "6 Tablets", price: "156.00",
+                                per: "26.00" }
+                        ],
+                        "Getz Pharma": [
+                            { product: "Amclav", strength: "1 Gram (1000 mg)", pack: "6 Tablets",
+                                price: "410.00", per: "68.33" },
+                            { product: "Amclav", strength: "625 mg", pack: "6 Tablets", price: "221.22",
+                                per: "36.87" },
+                            { product: "Amclav", strength: "375 mg", pack: "6 Tablets", price: "142.00",
+                                per: "23.66" }
+                        ],
+                        "Sandoz": [
+                            { product: "Amoxi-Clav", strength: "1 Gram (1000 mg)", pack: "12 Tablets",
+                                price: "785.00", per: "65.41" },
+                            { product: "Amoxi-Clav", strength: "625 mg", pack: "12 Tablets", price: "428.00",
+                                per: "35.67" }
+                        ],
+                        "Macter": [
+                            { product: "Co-Amoxi", strength: "1 Gram (1000 mg)", pack: "6 Tablets",
+                                price: "340.00", per: "56.66" },
+                            { product: "Co-Amoxi", strength: "625 mg", pack: "12 Tablets", price: "375.50",
+                                per: "31.29" },
+                            { product: "Co-Amoxi", strength: "375 mg", pack: "6 Tablets", price: "120.00",
+                                per: "20.00" }
+                        ]
+                    }
+                },
+                ur: {
+                    name: 'آگمینٹن',
+                    generic: 'اموکسی سلن + کلاوولینک ایسڈ',
+                    indications: 'بیکٹیریل انفیکشن بشمول:<br>• کان، ناک اور گلے کے انفیکشن<br>• سینے اور پھیپھڑوں کے انفیکشن<br>• پیشاب کے انفیکشن (UTI)<br>• جلد اور نرم بافتوں کے انفیکشن<br>• دانتوں کے انفیکشن<br>• ہڈیوں اور جوڑوں کے انفیکشن',
+                    sideEffects: '<strong>عام:</strong> پتلے پاخانے یا اسہال، متلی یا الٹی، ہلکی جلد کی خارش، اندام نہانی کی خمیری انفیکشن۔<br><br><strong>شدید:</strong> پیٹ کے درد کے ساتھ شدید یا خونی اسہال، وسیع دانے/چھالے/جلد کا چھلکا، چہرے/ہونٹوں/گلے کا سوجن یا سانس لینے میں دشواری، جلد/آنکھوں کا پیلا ہونا (جگر کی پریشانی)، خوراک کے فوراً بعد بار بار الٹی (خاص طور پر بچوں میں)، شدید مسلسل پیٹ کا درد۔',
+                    contraindications: 'کوئی بھی جس کو ماضی میں اینٹی بائیوٹک لینے کے بعد شدید ردعمل ہوا ہو (مثلاً، چہرے/گلے کا اچانک سوجن، سانس لینے میں دشواری، شدید جسمانی جلد کا ردعمل)۔<br>کوئی بھی جس کی جلد/آنکھیں پیلی ہوئی ہوں یا اس قسم کی دوا سے پہلے جگر کی پریشانی ہوئی ہو۔',
+                    patientHistory: '• جگر یا گردے کے مسائل<br>• گلینڈیولر بخار (مونو) – شدید دانے کا سبب بن سکتا ہے<br>• کئی مختلف دوائیوں سے ردعمل کی تاریخ<br>• پیشاب کرنے میں دشواری<br>• حمل، حمل کا منصوبہ، یا دودھ پلانا<br>• خون پتلا کرنے والی دوا (مثلاً وارفرین)',
+                    warnings: '<strong>غلط استعمال اور زیادہ استعمال کے انتباہات:</strong><br>• پچھلی بیماری سے بچی ہوئی اینٹی بائیوٹکس استعمال نہ کریں<br>• اپنی دوا کسی اور کے ساتھ شیئر نہ کریں<br>• صرف اس لیے جلدی بند نہ کریں کہ آپ ٹھیک محسوس کر رہے ہیں – مکمل کورس ختم کریں<br>• نزلہ، فلو، یا وائرل گلے کی سوزش کے لیے نہ لیں – اس سے مدد نہیں ہوگی<br>• ڈاکٹر کے معائنے کے بغیر 14 دن سے زیادہ جاری نہ رکھیں',
+                    altForms: '• گولیاں (625 mg, 1 g): بالغ اور 12 سال سے زیادہ عمر کے بچے، جن کا وزن 40 کلو یا اس سے زیادہ ہو<br>• چبانے والی گولیاں: چھوٹے بچوں کے لیے جو چبا سکتے ہیں<br>• زبانی مائع (سسپنشن): شیر خوار اور چھوٹے بچوں کے لیے، فارماسسٹ کے ذریعے تیار کردہ، وزن کے حساب سے خوراک',
+                    onset: 'زبانی استعمال کے 1-2 گھنٹے بعد خون میں زیادہ سے زیادہ سطح۔',
+                    storage: '25°C سے نیچے، خشک جگہ پر۔',
+                    missedDose: 'جیسے ہی یاد آئے لیں، پھر اگلی خوراک سے پہلے تقریباً 4 گھنٹے انتظار کریں۔ کبھی بھی دوگنا نہ کریں۔<br><br><strong>اگر بہت زیادہ لے لیا:</strong> پیٹ کی خرابی، الٹی، اسہال، یا دوروں پر نظر رکھیں۔ فوراً ڈاکٹر کو کال کریں اور دوا کا ڈبہ ساتھ لے جائیں۔',
+                    interactions: '• <strong>گٹھیا یا جوڑوں کی بیماری کی دوا:</strong> مضر اثرات بڑھا سکتی ہے یا جلد پر دانے کا سبب بن سکتی ہے۔<br>• <strong>خون پتلا کرنے والے (مثلاً وارفرین):</strong> خون بہنے کا خطرہ بڑھا سکتے ہیں۔<br>• <strong>مانع حمل گولیاں:</strong> تاثیر کم کر سکتی ہیں – اضافی مانع حمل پر غور کریں۔<br>• <strong>گٹھیا یا کینسر کی دوا:</strong> مضر اثرات بڑھا سکتی ہے۔',
+                    diet: '• ہر خوراک <strong>کھانے کے ساتھ</strong> لیں تاکہ آپ کا پیٹ محفوظ رہے۔<br>• دودھ کی مصنوعات ٹھیک ہیں – آگمینٹن دودھ یا کیلشیم کے ساتھ تضاد نہیں رکھتا۔<br>• علاج کے دوران دہی یا کیفیر (اور 2-4 ہفتے بعد) آنتوں کے بیکٹیریا کو بحال کرنے میں مدد کر سکتے ہیں۔<br>• کیلے، جئی، لہسن، اور پیاز آپ کی آنت میں اچھے بیکٹیریا کو فروغ دیتے ہیں۔<br>• کافی پانی پیئں۔<br>• انفیکشن کے علاج کے دوران الکحل اور بہت میٹھی غذاؤں سے پرہیز کریں۔',
+                    brandsData: {
+                        "GSK": [
+                            { product: "Augmentin", strength: "1 گرام (1000 mg)", pack: "12 گولیاں",
+                                price: "674.25", per: "56.18" },
+                            { product: "Augmentin", strength: "625 mg", pack: "6 گولیاں", price: "273.60",
+                                per: "45.60" },
+                            { product: "Augmentin", strength: "375 mg", pack: "6 گولیاں", price: "182.00",
+                                per: "30.33" }
+                        ],
+                        "Bosch": [
+                            { product: "Calamox", strength: "1 گرام (1000 mg)", pack: "6 گولیاں",
+                                price: "531.33", per: "88.55" },
+                            { product: "Calamox", strength: "625 mg", pack: "12 گولیاں", price: "313.30",
+                                per: "26.11" },
+                            { product: "Calamox", strength: "375 mg", pack: "6 گولیاں", price: "156.00",
+                                per: "26.00" }
+                        ],
+                        "Getz Pharma": [
+                            { product: "Amclav", strength: "1 گرام (1000 mg)", pack: "6 گولیاں",
+                                price: "410.00", per: "68.33" },
+                            { product: "Amclav", strength: "625 mg", pack: "6 گولیاں", price: "221.22",
+                                per: "36.87" },
+                            { product: "Amclav", strength: "375 mg", pack: "6 گولیاں", price: "142.00",
+                                per: "23.66" }
+                        ],
+                        "Sandoz": [
+                            { product: "Amoxi-Clav", strength: "1 گرام (1000 mg)", pack: "12 گولیاں",
+                                price: "785.00", per: "65.41" },
+                            { product: "Amoxi-Clav", strength: "625 mg", pack: "12 گولیاں", price: "428.00",
+                                per: "35.67" }
+                        ],
+                        "Macter": [
+                            { product: "Co-Amoxi", strength: "1 گرام (1000 mg)", pack: "6 گولیاں",
+                                price: "340.00", per: "56.66" },
+                            { product: "Co-Amoxi", strength: "625 mg", pack: "12 گولیاں", price: "375.50",
+                                per: "31.29" },
+                            { product: "Co-Amoxi", strength: "375 mg", pack: "6 گولیاں", price: "120.00",
+                                per: "20.00" }
+                        ]
+                    }
+                },
+                sd: {
+                    name: 'آگمينٽن',
+                    generic: 'اموڪسي سلن + ڪلاوولينڪ ايسڊ',
+                    indications: 'بيڪٽيريل انفيڪشن بشمول:<br>• ڪن، نڪ ۽ ڳلي جا انفيڪشن<br>• سيني ۽ ڦڦڙن جا انفيڪشن<br>• پيشاب جا انفيڪشن (UTI)<br>• چمڙي ۽ نرم بافتن جا انفيڪشن<br>• ڏندن جا انفيڪشن<br>• هڏن ۽ جوڑن جا انفيڪشن',
+                    sideEffects: '<strong>عام:</strong> پتلا پاخانو يا دست، متلي يا الٽي، هلڪي چمڙي جي خارش، اندام ناني جي خميري انفيڪشن.<br><br><strong>سخت:</strong> پيٽ جي درد سان گڏ سخت يا خوني دست، وسيع داڻا/ڦڦڙا/چمڙي جو ڇلڻ، چهري/چپن/ڳلي جي سوجن يا سانس وٺڻ ۾ مشڪل، چمڙي/اکين جو پيلو ٿيڻ (جگر جي تڪليف)، خوراڪ کان فوراً بعد بار بار الٽي (خاص طور تي ٻارن ۾)، سخت مسلسل پيٽ جو درد.',
+                    contraindications: 'ڪو به جنهن کي ماضي ۾ اينٽي بايوٽڪ وٺڻ کان پوءِ سخت ردعمل ٿيو هجي (مثال طور، چهري/ڳلي جي اوچتي سوجن، سانس وٺڻ ۾ مشڪل، سخت جسماني چمڙي جو ردعمل).<br>ڪو به جنهن جي چمڙي/اکيون پيلو ٿي هجن يا هن قسم جي دوا کان اڳ جگر جي تڪليف هجي.',
+                    patientHistory: '• جگر يا گردن جا مسئلا<br>• گلينڊيولر بخار (مونو) – سخت داڻن جو سبب بڻجي سگهي ٿو<br>• ڪيترين مختلف دوائن سان ردعمل جي تاريخ<br>• پيشاب ڪرڻ ۾ مشڪل<br>• حمل، حمل جو منصوبو، يا کير پيارڻ<br>• رت پتلو ڪندڙ دوا (مثال طور وارفرين)',
+                    warnings: '<strong>غلط استعمال ۽ گهڻي استعمال جا انتباہ:</strong><br>• پوئين بيماري کان بچيل اينٽي بايوٽڪ استعمال نه ڪريو<br>• پنهنجي دوا ڪنهن ٻئي سان شيئر نه ڪريو<br>• رڳو ان ڪري جلدي بند نه ڪريو جو توهان ٺيڪ محسوس ڪري رهيا آهيو – مڪمل ڪورس ختم ڪريو<br>• زڪام، فلو، يا وائرل ڳلي جي سوزش لاءِ نه وٺو – ان سان مدد نه ٿيندي<br>• ڊاڪٽر جي معائني کان سواءِ 14 ڏينهن کان وڌيڪ جاري نه رکو',
+                    altForms: '• گوليون (625 mg, 1 g): بالغ ۽ 12 سال کان وڌيڪ عمر وارا ٻار، جن جو وزن 40 ڪلو يا وڌيڪ هجي<br>• چباڻ واريون گوليون: ننڍن ٻارن لاءِ جي چئي سگهن<br>• زباني مائع (سسپنشن): ٻارن ۽ ننڍن ٻارن لاءِ، فارماسسٽ پاران تيار ڪيل، وزن جي حساب سان خوراڪ',
+                    onset: 'زباني استعمال جي 1-2 ڪلاڪن بعد رت ۾ وڌ ۾ وڌ سطح.',
+                    storage: '25°C کان هيٺ، خشڪ جاءِ تي.',
+                    missedDose: 'جيئن ياد اچي وٺو، پوءِ ايندڙ خوراڪ کان اڳ تقريباً 4 ڪلاڪ انتظار ڪريو. ڪڏهن به ٻيڻو نه ڪريو.<br><br><strong>جيڪڏهن گهڻو وٺي ورتو:</strong> پيٽ جي خرابي، الٽي، دست، يا دورن تي نظر رکو. فوري طور ڊاڪٽر کي فون ڪريو ۽ دوا جو ڊٻو پاڻ سان کڻي وڃو.',
+                    interactions: '• <strong>گٿيا يا جوڑن جي بيماري جي دوا:</strong> ضمني اثرات وڌائي سگهي ٿي يا چمڙي تي داڻن جو سبب بڻجي سگهي ٿي.<br>• <strong>رت پتلو ڪندڙ (مثال طور وارفرين):</strong> رت وهڻ جو خطرو وڌائي سگهن ٿا.<br>• <strong>مانع حمل گوليون:</strong> اثر گهٽائي سگهن ٿيون – اضافي مانع حمل تي غور ڪريو.<br>• <strong>گٿيا يا ڪينسر جي دوا:</strong> ضمني اثرات وڌائي سگهي ٿي.',
+                    diet: '• هر خوراڪ <strong>کاڌي سان گڏ</strong> وٺو ته جيئن توهان جو پيٽ محفوظ رهي.<br>• کير جون شيون ٺيڪ آهن – آگمينٽن کير يا ڪيلشيم سان تضاد نٿو رکي.<br>• علاج دوران ديهي يا كيفير (۽ 2-4 هفتا بعد) آنڊن جي بيڪٽيريا کي بحال ڪرڻ ۾ مدد ڪري سگهن ٿا.<br>• ڪيلا، جئي، لوسن، ۽ پياز توهان جي آنڊن ۾ سٺن بيڪٽيريا کي وڌائين ٿا.<br>• گهڻو پاڻي پيئو.<br>• انفيڪشن جي علاج دوران شراب ۽ گهڻي مٺي خوراڪ کان پرهيز ڪريو.',
+                    brandsData: {
+                        "GSK": [
+                            { product: "Augmentin", strength: "1 گرام (1000 mg)", pack: "12 گوليون",
+                                price: "674.25", per: "56.18" },
+                            { product: "Augmentin", strength: "625 mg", pack: "6 گوليون", price: "273.60",
+                                per: "45.60" },
+                            { product: "Augmentin", strength: "375 mg", pack: "6 گوليون", price: "182.00",
+                                per: "30.33" }
+                        ],
+                        "Bosch": [
+                            { product: "Calamox", strength: "1 گرام (1000 mg)", pack: "6 گوليون",
+                                price: "531.33", per: "88.55" },
+                            { product: "Calamox", strength: "625 mg", pack: "12 گوليون", price: "313.30",
+                                per: "26.11" },
+                            { product: "Calamox", strength: "375 mg", pack: "6 گوليون", price: "156.00",
+                                per: "26.00" }
+                        ],
+                        "Getz Pharma": [
+                            { product: "Amclav", strength: "1 گرام (1000 mg)", pack: "6 گوليون",
+                                price: "410.00", per: "68.33" },
+                            { product: "Amclav", strength: "625 mg", pack: "6 گوليون", price: "221.22",
+                                per: "36.87" },
+                            { product: "Amclav", strength: "375 mg", pack: "6 گوليون", price: "142.00",
+                                per: "23.66" }
+                        ],
+                        "Sandoz": [
+                            { product: "Amoxi-Clav", strength: "1 گرام (1000 mg)", pack: "12 گوليون",
+                                price: "785.00", per: "65.41" },
+                            { product: "Amoxi-Clav", strength: "625 mg", pack: "12 گوليون", price: "428.00",
+                                per: "35.67" }
+                        ],
+                        "Macter": [
+                            { product: "Co-Amoxi", strength: "1 گرام (1000 mg)", pack: "6 گوليون",
+                                price: "340.00", per: "56.66" },
+                            { product: "Co-Amoxi", strength: "625 mg", pack: "12 گوليون", price: "375.50",
+                                per: "31.29" },
+                            { product: "Co-Amoxi", strength: "375 mg", pack: "6 گوليون", price: "120.00",
+                                per: "20.00" }
+                        ]
+                    }
+                }
+            },
+
+            centrum: {
+                en: {
+                    name: 'Centrum',
+                    generic: 'Multi-Vitamins',
+                    indications: 'A daily multivitamin for adults, 24+ vitamins and minerals in one tablet. For general nutrition, energy, immunity, and bone/eye health as you age.',
+                    howToTake: 'Take 1 tablet a day, with food. Don\'t take more than the suggested amount.',
+                    sideEffects: '<strong>Common:</strong> Upset stomach; Harmless yellow‑ish urine or darker stools – this is normal.<br><br><strong>Serious:</strong> Allergic reaction: rash, hives, swelling of face/lips/tongue, throat tightness; Severe vomiting or diarrhea; Muscle weakness, numbness, or tingling.',
+                    contraindications: '• Anyone allergic to a past multivitamin or any ingredient in it<br>• Not for children<br>• Pregnant or breastfeeding (check with doctor)<br>• Already taking other vitamin A supplements<br>• Any ongoing prescription medicines',
+                    patientHistory: 'Adults: one standard formula. It\'s not dosed for children, and different Centrum lines exist (Men\'s, Women\'s, Silver 50+).',
+                    warnings: '• Taking long‑term high‑dose vitamin A can weaken bones over time.<br>• One tablet per day unless directed by a doctor.<br>• Overdoing any multivitamin regularly can build up to real toxicity.',
+                    onset: 'Not applicable – daily supplement.',
+                    storage: 'Store below 30°C, in a cool dry place.',
+                    missedDose: '• Missed a day: just take the next one as normal.<br>• Took too many: call a doctor or poison control. Iron‑containing multivitamins are especially dangerous in overdose.',
+                    diet: 'Take it with a meal – food helps you absorb the vitamins properly and eases stomach upset.',
+                    interactions: '• Calcium/magnesium/zinc/iron in it can reduce absorption of certain antibiotics (like tetracyclines and some others).<br>• Vitamin K can work against blood thinners like warfarin.<br>• General rule: tell all your health care providers (doctors, nurses, pharmacists, dentists) that you take this multivitamin, since it can interact with a wide range of prescriptions – over a hundred medications are known to interact with Centrum Silver, including common blood pressure medicines like amlodipine and metoprolol.',
+                    variants: [
+                        { name: "Centrum Adults", pack: "30 tabs", price: "Rs. 51.00/tab",
+                            bestFor: "General daily nutrition" },
+                        { name: "Centrum Silver 50+", pack: "30 tabs", price: "Rs. 57.80/tab",
+                            bestFor: "Heart, brain, bone, eye health for 50+" },
+                        { name: "Centrum Men (imported)", pack: "60 tabs", price: "Rs. 66.67/tab",
+                            bestFor: "Extra magnesium/B‑vitamins for energy & muscle" },
+                        { name: "Centrum Women (imported)", pack: "60 tabs", price: "Rs. 75.00/tab",
+                            bestFor: "Extra iron & folic acid" },
+                        { name: "Centrum Advance (imported)", pack: "100 tabs", price: "Rs. 72.50/tab",
+                            bestFor: "Higher lycopene/lutein for cell protection" }
+                    ]
+                },
+                ur: {
+                    name: 'سینٹرم',
+                    generic: 'ملٹی وٹامنز',
+                    indications: 'بالغوں کے لیے روزانہ ملٹی وٹامن، ایک گولی میں 24+ وٹامنز اور منرلز۔ عمومی غذائیت، توانائی، قوت مدافعت، اور عمر بڑھنے کے ساتھ ہڈیوں/آنکھوں کی صحت کے لیے۔',
+                    howToTake: 'روزانہ 1 گولی، کھانے کے ساتھ لیں۔ تجویز کردہ مقدار سے زیادہ نہ لیں۔',
+                    sideEffects: '<strong>عام:</strong> پیٹ کی خرابی؛ بے ضرر پیلے رنگ کا پیشاب یا گہرا پاخانہ – یہ معمول ہے۔<br><br><strong>شدید:</strong> الرجک ردعمل: دانے، چھتے، چہرے/ہونٹوں/زبان کا سوجن، گلے کا تنگ ہونا؛ شدید الٹی یا اسہال؛ پٹھوں کی کمزوری، بے حسی، یا جھنجھناہٹ۔',
+                    contraindications: '• کوئی بھی جسے ماضی کے ملٹی وٹامن یا اس کے کسی جزو سے الرجی ہو<br>• بچوں کے لیے نہیں<br>• حاملہ یا دودھ پلانے والی (ڈاکٹر سے چیک کریں)<br>• پہلے سے دیگر وٹامن A سپلیمنٹس لے رہے ہوں<br>• کوئی بھی جاری نسخے کی دوائیں',
+                    patientHistory: 'بالغ: ایک معیاری فارمولا۔ یہ بچوں کے لیے مقدار میں نہیں ہے، اور سینٹرم کی مختلف لائنیں موجود ہیں (مردوں کے لیے، عورتوں کے لیے، سلور 50+)۔',
+                    warnings: '• طویل مدتی زیادہ مقدار میں وٹامن A لینے سے وقت کے ساتھ ہڈیاں کمزور ہو سکتی ہیں۔<br>• روزانہ ایک گولی جب تک کہ ڈاکٹر کی ہدایت نہ ہو۔<br>• کسی بھی ملٹی وٹامن کا باقاعدہ زیادہ استعمال حقیقی زہریلے پن کا باعث بن سکتا ہے۔',
+                    onset: 'لاگو نہیں – روزانہ سپلیمنٹ۔',
+                    storage: '30°C سے نیچے، ٹھنڈی خشک جگہ پر ذخیرہ کریں۔',
+                    missedDose: '• ایک دن چھوٹ گیا: اگلی گولی معمول کے مطابق لیں۔<br>• بہت زیادہ لے لیا: ڈاکٹر یا زہر کنٹرول کو کال کریں۔ آئرن پر مشتمل ملٹی وٹامنز زیادہ مقدار میں خاص طور پر خطرناک ہیں۔',
+                    diet: 'اسے کھانے کے ساتھ لیں – کھانا وٹامنز کو صحیح طریقے سے جذب کرنے میں مدد کرتا ہے اور پیٹ کی خرابی کو کم کرتا ہے۔',
+                    interactions: '• اس میں موجود کیلشیم/میگنیشیم/زنک/آئرن بعض اینٹی بائیوٹکس (جیسے ٹیٹراسائکلین اور کچھ دیگر) کے جذب کو کم کر سکتے ہیں۔<br>• وٹامن K وارفرین جیسے خون پتلا کرنے والوں کے خلاف کام کر سکتا ہے۔<br>• عمومی اصول: اپنے تمام صحت کی دیکھ بھال فراہم کنندگان (ڈاکٹروں، نرسوں، فارماسسٹوں، دانتوں کے ڈاکٹروں) کو بتائیں کہ آپ یہ ملٹی وٹامن لے رہے ہیں، کیونکہ یہ نسخوں کی ایک وسیع رینج کے ساتھ تعامل کر سکتا ہے – سو سے زیادہ دوائیں سینٹرم سلور کے ساتھ تعامل کرتی ہیں، بشمول عام بلڈ پریشر کی دوائیں جیسے املوڈیپائن اور میٹوپرولول۔',
+                    variants: [
+                        { name: "سینٹرم بالغ", pack: "30 گولیاں", price: "روپے 51.00/گولی",
+                            bestFor: "عام روزانہ غذائیت" },
+                        { name: "سینٹرم سلور 50+", pack: "30 گولیاں", price: "روپے 57.80/گولی",
+                            bestFor: "دل، دماغ، ہڈیاں، آنکھوں کی صحت 50+ کے لیے" },
+                        { name: "سینٹرم مرد (امپورٹڈ)", pack: "60 گولیاں", price: "روپے 66.67/گولی",
+                            bestFor: "توانائی اور پٹھوں کے لیے اضافی میگنیشیم/بی وٹامنز" },
+                        { name: "سینٹرم خواتین (امپورٹڈ)", pack: "60 گولیاں", price: "روپے 75.00/گولی",
+                            bestFor: "اضافی آئرن اور فولک ایسڈ" },
+                        { name: "سینٹرم ایڈوانس (امپورٹڈ)", pack: "100 گولیاں", price: "روپے 72.50/گولی",
+                            bestFor: "سیل کے تحفظ کے لیے زیادہ لائکوپین/لوٹین" }
+                    ]
+                },
+                sd: {
+                    name: 'سينٽرم',
+                    generic: 'ملٽي وٽامنز',
+                    indications: 'بالغن لاءِ روزانو ملٽي وٽامن، هڪ گولي ۾ 24+ وٽامنز ۽ منرلز. عام غذائيت، توانائي، قوت مدافعت، ۽ عمر وڌڻ سان هڏن/اکين جي صحت لاءِ.',
+                    howToTake: 'روزانو 1 گولي، کاڌي سان گڏ وٺو. تجويز ڪيل مقدار کان وڌيڪ نه وٺو.',
+                    sideEffects: '<strong>عام:</strong> پيٽ جي خرابي؛ بي ضرر پيلو رنگ جو پيشاب يا گهرو پاخانو – اهو معمول آهي.<br><br><strong>سخت:</strong> الرجڪ ردعمل: داڻا، ڇتے، چهري/چپن/زبان جي سوجن، ڳلي جو تنگ ٿيڻ؛ سخت الٽي يا دست؛ عضلات جي ڪمزوري، بي حسي، يا جھنجھناھٽ.',
+                    contraindications: '• ڪو به جنهن کي ماضي جي ملٽي وٽامن يا ان جي ڪنهن جز سان الرجي هجي<br>• ٻارن لاءِ نه<br>• حامله يا کير پياريندڙ (ڊاڪٽر سان چيڪ ڪريو)<br>• اڳ ۾ ئي ٻيا وٽامن A سپليمينٽس وٺي رهيا هجن<br>• ڪو به جاري نسخي جون دوائون',
+                    patientHistory: 'بالغ: هڪ معياري فارمولا. اهو ٻارن لاءِ مقدار ۾ نه آهي، ۽ سينٽرم جون مختلف لائينون موجود آهن (مردن لاءِ، عورتن لاءِ، سلور 50+).',
+                    warnings: '• ڊگهي مدي واري گهڻي مقدار ۾ وٽامن A وٺڻ سان وقت سان گڏ هڏا ڪمزور ٿي سگهن ٿا.<br>• روزانو هڪ گولي جيستائين ڊاڪٽر جي هدايت نه هجي.<br>• ڪنهن به ملٽي وٽامن جو باقاعده گهڻو استعمال حقيقي زهريلاپي جو سبب بڻجي سگهي ٿو.',
+                    onset: 'لاڳو نه – روزانو سپليمينٽ.',
+                    storage: '30°C کان هيٺ، ٿڌي خشڪ جاءِ تي ذخيرو ڪريو.',
+                    missedDose: '• هڪ ڏينهن وسري ويو: ايندڙ گولي معمول مطابق وٺو.<br>• گهڻو وٺي ورتو: ڊاڪٽر يا زهر ڪنٽرول کي فون ڪريو. آئرن تي مشتمل ملٽي وٽامنز گهڻي مقدار ۾ خاص طور تي خطرناڪ آهن.',
+                    diet: 'ان کي کاڌي سان گڏ وٺو – کاڌو وٽامنز کي صحيح طريقي سان جذب ڪرڻ ۾ مدد ڪري ٿو ۽ پيٽ جي خرابي کي گهٽائي ٿو.',
+                    interactions: '• ان ۾ موجود ڪيلشيم/ميگنيشيم/زنڪ/آئرن ڪجهه اينٽي بايوٽڪ (جهڙوڪ ٽيٽراسائڪلين ۽ ڪجهه ٻيا) جي جذب کي گهٽائي سگهن ٿا.<br>• وٽامن K وارفرين جهڙن رت پتلو ڪندڙن جي خلاف ڪم ڪري سگهي ٿو.<br>• عام اصول: پنهنجي سڀني صحت جي سار سنڀال فراهم ڪندڙن (ڊاڪٽرن، نرسن، فارماسسٽن، ڏندن جي ڊاڪٽرن) کي ٻڌايو ته توهان هي ملٽي وٽامن وٺي رهيا آهيو، ڇو ته اهو نسخن جي وسيع رينج سان تعامل ڪري سگهي ٿو – سؤ کان وڌيڪ دوائون سينٽرم سلور سان تعامل ڪن ٿيون، جن ۾ عام بلڊ پريشر جون دوائون جهڙوڪ املوڊيپائن ۽ ميٽوپرولول شامل آهن.',
+                    variants: [
+                        { name: "سينٽرم بالغ", pack: "30 گوليون", price: "روپيا 51.00/گولي",
+                            bestFor: "عام روزانو غذائيت" },
+                        { name: "سينٽرم سلور 50+", pack: "30 گوليون", price: "روپيا 57.80/گولي",
+                            bestFor: "دل، دماغ، هڏا، اکين جي صحت 50+ لاءِ" },
+                        { name: "سينٽرم مرد (امپورٽڊ)", pack: "60 گوليون", price: "روپيا 66.67/گولي",
+                            bestFor: "توانائي ۽ عضلات لاءِ اضافي ميگنيشيم/بي وٽامنز" },
+                        { name: "سينٽرم عورتون (امپورٽڊ)", pack: "60 گوليون", price: "روپيا 75.00/گولي",
+                            bestFor: "اضافي آئرن ۽ فولڪ ايسڊ" },
+                        { name: "سينٽرم ايڊوانس (امپورٽڊ)", pack: "100 گوليون", price: "روپيا 72.50/گولي",
+                            bestFor: "سيل جي تحفظ لاءِ وڌيڪ لائيڪوپين/لوٽين" }
+                    ]
+                }
+            }
+        };
+
+        // Helper to get medicine data for a given language
+        function getMedicineData(lang, key) {
+            const med = MEDICINE_DATA[key];
+            if (!med) return null;
+            if (med[lang]) return med[lang];
+            // fallback to English
+            return med.en;
+        }
+
+        // Helper to get UI text for a given language
+        function getUI(lang) {
+            return UI[lang] || UI.en;
+        }
+
+        // =================================================================
+        // 2. STATE
+        // =================================================================
+        let currentLang = 'en';
+        let selectedMedicineKey = null;
+        let awaitingFollowUp = false;
+        let currentDashboardBubble = null;
+        let recognition = null;
+        let isRecording = false;
+
+        const chatMessages = document.getElementById('chatMessages');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+        const micBtn = document.getElementById('micBtn');
+        const micStatus = document.getElementById('micStatus');
+
+        const langOverlay = document.getElementById('langOverlay');
+        const langOptions = document.querySelectorAll('.lang-option');
+        const appTitle = document.getElementById('appTitle');
+        const pdfLabel = document.getElementById('pdfLabel');
+        const langSubText = document.getElementById('langSubText');
+        const langSelectorBtns = document.querySelectorAll('.lang-selector .lang-btn');
+
+        // =================================================================
+        // 3. UI HELPERS
+        // =================================================================
+        function scrollToBottom() {
+            setTimeout(() => {
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }, 50);
+        }
+
+        function addMessage(sender, htmlContent) {
+            const div = document.createElement('div');
+            div.className = `message ${sender}`;
+            const label = document.createElement('div');
+            label.className = 'label';
+            const ui = getUI(currentLang);
+            label.textContent = sender === 'bot' ? ui.botLabel : ui.userLabel;
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            bubble.innerHTML = htmlContent;
+
+            div.appendChild(label);
+            div.appendChild(bubble);
+            chatMessages.appendChild(div);
+            scrollToBottom();
+            return bubble;
+        }
+
+        function clearChat() {
+            chatMessages.innerHTML = '';
+        }
+
+        function updateUILanguage(lang) {
+            const ui = getUI(lang);
+            appTitle.textContent = ui.appTitle;
+            pdfLabel.textContent = ui.pdfLabel;
+            userInput.placeholder = ui.placeholder;
+            sendBtn.textContent = ui.sendBtn;
+            micStatus.textContent = ui.micStatusIdle;
+            langSubText.textContent = ui.langSub;
+
+            // Update active state on header buttons
+            langSelectorBtns.forEach(btn => {
+                btn.classList.toggle('active-lang', btn.dataset.lang === lang);
+            });
+        }
+
+        // =================================================================
+        // 4. DASHBOARD RENDERER
+        // =================================================================
+        function renderDashboard(medicineKey) {
+            const med = getMedicineData(currentLang, medicineKey);
+            if (!med) return '';
+            const ui = getUI(currentLang);
+
+            // Define which fields to show as cards
+            const cardFields = [
+                'indications', 'howToTake', 'sideEffects', 'contraindications',
+                'patientHistory', 'warnings', 'interactions', 'diet',
+                'altForms', 'onset', 'storage', 'missedDose'
+            ];
+
+            let gridHtml = `<div id="active-dashboard" class="dashboard-grid">`;
+            gridHtml += `<div class="dash-card medicine-title-dash">${ui.dashboardTitle(med.name, med.generic)}</div>`;
+
+            cardFields.forEach(field => {
+                if (med[field]) {
+                    const title = ui.cardTitles[field] || field;
+                    const icon = ui.cardIcons[field] || '📌';
+                    gridHtml += `
+                        <div class="dash-card">
+                            <div class="card-title"><span class="icon">${icon}</span> ${title}</div>
+                            <div class="card-body">${med[field]}</div>
+                        </div>
+                    `;
+                }
+            });
+
+            gridHtml += `</div>`;
+
+            // ---- Brands section ----
+            let brandsHtml = `<div class="brands-section">`;
+
+            // Variants (Panadol, Centrum)
+            if (med.variants && med.variants.length) {
+                brandsHtml += `<div class="section-title">${ui.brandsTitle}</div><div style="display:flex; flex-wrap:wrap; gap:6px;">`;
+                med.variants.forEach((v, idx) => {
+                    const boxId = `variant-${medicineKey}-${idx}`;
+                    brandsHtml +=
+                        `<span class="brand-box" data-variant="${medicineKey}" data-idx="${idx}" id="${boxId}">${v.name}</span>`;
+                });
+                brandsHtml += `</div>`;
+            }
+
+            // Brands data (Augmentin)
+            if (med.brandsData) {
+                brandsHtml += `<div class="section-title" style="margin-top:16px;">${ui.manufacturersTitle}</div>`;
+                brandsHtml += `<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;">`;
+                Object.keys(med.brandsData).forEach(mfr => {
+                    brandsHtml +=
+                        `<button class="brand-btn" data-mfr="${mfr.replace(/\s/g,'')}" data-mfr-full="${mfr}">${mfr}</button>`;
+                });
+                brandsHtml += `</div>`;
+                Object.keys(med.brandsData).forEach(mfr => {
+                    const mfrId = mfr.replace(/\s/g, '');
+                    brandsHtml += `<div id="brand-dropdown-${mfrId}" class="brand-dropdown" style="display:none;">`;
+                    brandsHtml += `<ul>`;
+                    med.brandsData[mfr].forEach(item => {
+                        brandsHtml += `
+                            <li class="brand-product" data-mfr="${mfr}" data-strength="${item.strength}" data-pack="${item.pack}" data-price="${item.price}" data-per="${item.per}" data-product="${item.product}">
+                                <strong>${item.product}</strong> – ${item.strength} <span class="detail">${item.pack} – Rs. ${item.price} (Rs. ${item.per}/tab)</span>
+                            </li>
+                        `;
+                    });
+                    brandsHtml += `</ul></div>`;
+                });
+            }
+
+            brandsHtml += `</div>`;
+
+            return gridHtml + brandsHtml;
+        }
+
+        // =================================================================
+        // 5. ATTACH BRAND EVENTS
+        // =================================================================
+        function attachBrandEvents() {
+            const ui = getUI(currentLang);
+
+            // Variant boxes
+            document.querySelectorAll('.brand-box[data-variant]').forEach(el => {
+                el.removeEventListener('click', handleVariantClick);
+                el.addEventListener('click', handleVariantClick);
+            });
+
+            // Manufacturer buttons
+            document.querySelectorAll('.brand-btn').forEach(btn => {
+                btn.removeEventListener('click', handleMfrClick);
+                btn.addEventListener('click', handleMfrClick);
+            });
+
+            // Product items
+            document.querySelectorAll('.brand-product').forEach(item => {
+                item.removeEventListener('click', handleProductClick);
+                item.addEventListener('click', handleProductClick);
+            });
+        }
+
+        function handleVariantClick(e) {
+            const el = e.currentTarget;
+            const medKey = el.dataset.variant;
+            const idx = parseInt(el.dataset.idx);
+            const med = getMedicineData(currentLang, medKey);
+            if (!med || !med.variants || !med.variants[idx]) return;
+            const v = med.variants[idx];
+            const ui = getUI(currentLang);
+            const detail = ui.variantDetail(v.name, v.strength, v.pack, v.price, v.bestFor);
+            addMessage('bot', ui.selectedProduct(medKey) + detail);
+        }
+
+        function handleMfrClick(e) {
+            const btn = e.currentTarget;
+            const mfrId = btn.dataset.mfr;
+            const dropdown = document.getElementById(`brand-dropdown-${mfrId}`);
+            if (!dropdown) return;
+            document.querySelectorAll('.brand-dropdown').forEach(d => {
+                if (d.id !== `brand-dropdown-${mfrId}`) d.style.display = 'none';
+            });
+            const isOpen = dropdown.style.display === 'block';
+            dropdown.style.display = isOpen ? 'none' : 'block';
+            document.querySelectorAll('.brand-btn').forEach(b => b.classList.remove('active'));
+            if (!isOpen) btn.classList.add('active');
+        }
+
+        function handleProductClick(e) {
+            const el = e.currentTarget;
+            const mfr = el.dataset.mfr;
+            const product = el.dataset.product;
+            const strength = el.dataset.strength;
+            const pack = el.dataset.pack;
+            const price = el.dataset.price;
+            const per = el.dataset.per;
+            const ui = getUI(currentLang);
+            const detail = ui.productDetail(product, strength, pack, price, per, mfr);
+            addMessage('bot', `📦 <strong>${ui.fieldLabels.altBrands || 'Selected product'}:</strong><br>${detail}`);
+        }
+
+        // =================================================================
+        // 6. PDF DOWNLOAD
+        // =================================================================
+        function downloadPDF() {
+            if (!currentDashboardBubble) {
+                const ui = getUI(currentLang);
+                alert('📋 Please select a medicine (Panadol, Augmentin, or Centrum) to generate a dashboard first.');
+                return;
+            }
+
+            const originalText = downloadPdfBtn.innerHTML;
+            downloadPdfBtn.innerHTML = '⏳ Generating...';
+            downloadPdfBtn.disabled = true;
+
+            const filename = `PharmaBot_${selectedMedicineKey ? selectedMedicineKey.charAt(0).toUpperCase() + selectedMedicineKey.slice(1) : 'Dashboard'}.pdf`;
+
+            const opt = {
+                margin: 0.5,
+                filename: filename,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, letterRendering: true, useCORS: true, logging: false },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(opt).from(currentDashboardBubble).save().then(() => {
+                downloadPdfBtn.innerHTML = originalText;
+                downloadPdfBtn.disabled = false;
+            }).catch((error) => {
+                console.error('PDF generation failed:', error);
+                alert('❌ Failed to generate PDF. Please try again.');
+                downloadPdfBtn.innerHTML = originalText;
+                downloadPdfBtn.disabled = false;
+            });
+        }
+
+        // =================================================================
+        // 7. SPEECH RECOGNITION
+        // =================================================================
+        function initSpeechRecognition() {
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                micBtn.style.opacity = '0.4';
+                micBtn.title = 'Speech recognition not supported in this browser';
+                return;
+            }
+
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SR();
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            recognition.maxAlternatives = 1;
+
+            // Set language based on current selection
+            recognition.lang = getSpeechLang(currentLang);
+
+            recognition.onstart = function() {
+                isRecording = true;
+                micBtn.classList.add('recording');
+                const ui = getUI(currentLang);
+                micStatus.textContent = ui.micStatusListening;
+                userInput.placeholder = '🎤 Listening...';
+            };
+
+            recognition.onend = function() {
+                isRecording = false;
+                micBtn.classList.remove('recording');
+                const ui = getUI(currentLang);
+                micStatus.textContent = ui.micStatusIdle;
+                userInput.placeholder = ui.placeholder;
+            };
+
+            recognition.onresult = function(event) {
+                let finalTranscript = '';
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                if (interimTranscript) {
+                    userInput.value = interimTranscript;
+                }
+
+                if (finalTranscript) {
+                    userInput.value = finalTranscript;
+                    const ui = getUI(currentLang);
+                    micStatus.textContent = ui.micStatusDetected;
+                    setTimeout(() => {
+                        const text = userInput.value.trim();
+                        if (text) {
+                            processUserMessage(text);
+                            userInput.value = '';
+                        }
+                    }, 300);
+                }
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error:', event.error);
+                const ui = getUI(currentLang);
+                micStatus.textContent = '❌ ' + event.error;
+                micBtn.classList.remove('recording');
+                isRecording = false;
+                userInput.placeholder = ui.placeholder;
+                setTimeout(() => {
+                    micStatus.textContent = ui.micStatusIdle;
+                }, 2000);
+            };
+        }
+
+        function getSpeechLang(lang) {
+            const map = {
+                'en': 'en-US',
+                'ur': 'ur-PK',
+                'sd': 'sd' // Sindhi – may fallback to 'ur' in some browsers
+            };
+            return map[lang] || 'en-US';
+        }
+
+        function toggleRecording() {
+            if (!recognition) {
+                alert('Speech recognition is not available in this browser.');
+                return;
+            }
+
+            if (isRecording) {
+                recognition.stop();
+                return;
+            }
+
+            recognition.lang = getSpeechLang(currentLang);
+            try {
+                recognition.start();
+            } catch (e) {
+                console.warn('Recognition start error:', e);
+                const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+                recognition = new SR();
+                recognition.continuous = false;
+                recognition.interimResults = true;
+                recognition.lang = getSpeechLang(currentLang);
+                recognition.onstart = function() { /* ... */ };
+                recognition.onend = function() { /* ... */ };
+                recognition.onresult = function(event) { /* ... */ };
+                recognition.onerror = function(event) { /* ... */ };
+                try {
+                    recognition.start();
+                } catch (e2) {
+                    console.error('Failed to start recognition:', e2);
+                }
+            }
+        }
+
+        // =================================================================
+        // 8. CORE LOGIC
+        // =================================================================
+        function processUserMessage(inputText) {
+            const text = inputText.trim();
+            if (!text) return;
+
+            addMessage('user', text);
+            const ui = getUI(currentLang);
+            const lower = text.toLowerCase();
+
+            // Map medicine names in all languages
+            const medNames = {
+                en: ['panadol', 'augmentin', 'centrum'],
+                ur: ['پیناڈول', 'آگمینٹن', 'سینٹرم'],
+                sd: ['پيناڊول', 'آگمينٽن', 'سينٽرم']
+            };
+
+            // Check if user wants to restart
+            const restartWords = ['new', 'restart', 'start over', 'نیا', 'دوبارہ شروع', 'ٻيهر شروع'];
+            if (restartWords.some(w => lower.includes(w))) {
+                selectedMedicineKey = null;
+                awaitingFollowUp = false;
+                currentDashboardBubble = null;
+                addMessage('bot', ui.restart);
+                return;
+            }
+
+            if (!selectedMedicineKey) {
+                // Try to find medicine in any language
+                let found = null;
+                const allKeys = Object.keys(MEDICINE_DATA);
+                for (let key of allKeys) {
+                    const enData = MEDICINE_DATA[key].en;
+                    const urData = MEDICINE_DATA[key].ur;
+                    const sdData = MEDICINE_DATA[key].sd;
+                    const names = [
+                        enData.name.toLowerCase(),
+                        urData ? urData.name : '',
+                        sdData ? sdData.name : '',
+                        key.toLowerCase()
+                    ];
+                    if (enData.generic) names.push(enData.generic.toLowerCase());
+                    if (urData && urData.generic) names.push(urData.generic.toLowerCase());
+                    if (sdData && sdData.generic) names.push(sdData.generic.toLowerCase());
+
+                    if (names.some(n => n && lower.includes(n))) {
+                        found = key;
+                        break;
+                    }
+                    if (lower === key || lower.includes(key)) {
+                        found = key;
+                        break;
+                    }
+                }
+
+                if (found) {
+                    selectedMedicineKey = found;
+                    const med = getMedicineData(currentLang, found);
+                    addMessage('bot', `Here is the complete patient counselling dashboard for <strong>${med.name} (${med.generic})</strong>: `);
+
+                    const dashboardHtml = renderDashboard(found);
+                    const msgDiv = document.createElement('div');
+                    msgDiv.className = 'message bot';
+                    const label = document.createElement('div');
+                    label.className = 'label';
+                    label.textContent = ui.botLabel;
+                    const bubble = document.createElement('div');
+                    bubble.className = 'bubble';
+                    bubble.innerHTML = dashboardHtml;
+                    msgDiv.appendChild(label);
+                    msgDiv.appendChild(bubble);
+                    chatMessages.appendChild(msgDiv);
+                    currentDashboardBubble = bubble;
+                    scrollToBottom();
+
+                    attachBrandEvents();
+
+                    setTimeout(() => {
+                        addMessage('bot', ui.followUp(med.name));
+                        awaitingFollowUp = true;
+                    }, 400);
+                } else {
+                    addMessage('bot', ui.notFound);
+                }
+                return;
+            }
+
+            // Follow-up mode
+            if (selectedMedicineKey && awaitingFollowUp) {
+                const med = getMedicineData(currentLang, selectedMedicineKey);
+                const query = lower;
+
+                const keywordMap = [
+                    { keywords: ['side effect', 'side-effect', 'sideeffects', 'adverse', 'reaction', 'مضر اثرات',
+                            'ضمني اثرات'
+                        ], field: 'sideEffects', label: 'sideEffects' },
+                    { keywords: ['indication', 'uses', 'use', 'what is it for', 'treat', 'استعمال', 'استعمالات',
+                            'استعمال'
+                        ], field: 'indications', label: 'indications' },
+                    { keywords: ['contraindication', 'who should not', 'avoid', 'not take', 'احتیاط', 'احتياط'],
+                        field: 'contraindications', label: 'contraindications' },
+                    { keywords: ['patient history', 'caution', 'medical history', 'kidney', 'liver', 'pregnancy',
+                            'breastfeeding', 'مریض کی تاریخ', 'مريض جي تاريخ'
+                        ], field: 'patientHistory', label: 'patientHistory' },
+                    { keywords: ['warning', 'misuse', 'overuse', 'overdose', 'resistance', 'course', 'duration',
+                            'انتباہ', 'انتباہات'
+                        ], field: 'warnings', label: 'warnings' },
+                    { keywords: ['alternative', 'brand', 'price', 'cost', 'other name', 'generic', 'برانڈ',
+                            'قیمت', 'برانڊ', 'قيمت'
+                        ], field: 'altBrands', label: 'altBrands' },
+                    { keywords: ['dosage form', 'tablet', 'syrup', 'injection', 'capsule', 'drop', 'form',
+                            'متبادل شکلیں', 'متبادل شڪلون'
+                        ], field: 'altForms', label: 'altForms' },
+                    { keywords: ['onset', 'how fast', 'start working', 'peak', 'kick in', 'اثر کا آغاز',
+                            'اثر جي شروعات'
+                        ], field: 'onset', label: 'onset' },
+                    { keywords: ['storage', 'keep', 'temperature', 'store', 'light', 'ذخیرہ', 'ذخيرو'],
+                        field: 'storage', label: 'storage' },
+                    { keywords: ['missed dose', 'forgot', 'skip', 'double dose', 'remember', 'بھولی ہوئی خوراک',
+                            'وسري ويل خوراڪ'
+                        ], field: 'missedDose', label: 'missedDose' },
+                    { keywords: ['interaction', 'interacts', 'with other drugs', 'blood thinner', 'birth control',
+                            'arthritis', 'flucloxacillin', 'warfarin', 'metoclopramide', 'domperidone',
+                            'colestyramine', 'calcium', 'magnesium', 'zinc', 'iron', 'vitamin k', 'amlodipine',
+                            'metoprolol', 'تعاملات', 'تعامل'
+                        ], field: 'interactions', label: 'interactions' },
+                    { keywords: ['diet', 'eat', 'food', 'yogurt', 'alcohol', 'drink', 'meal', 'خوراک',
+                            'طرز زندگی', 'خوراڪ', 'طرز زندگي'
+                        ], field: 'diet', label: 'diet' },
+                    { keywords: ['how to take', 'take', 'dosage', 'dose', 'administration', 'استعمال کا طریقہ',
+                            'استعمال جو طريقو'
+                        ], field: 'howToTake', label: 'howToTake' }
+                ];
+
+                let foundField = null;
+                let foundLabel = null;
+                for (let map of keywordMap) {
+                    if (map.keywords.some(kw => query.includes(kw.toLowerCase()))) {
+                        foundField = map.field;
+                        foundLabel = map.label;
+                        break;
+                    }
+                }
+
+                if (foundField && med[foundField]) {
+                    const labelText = ui.fieldLabels[foundLabel] || foundLabel;
+                    const response = `📌 <strong>${labelText} for ${med.name}:</strong><br><br>${med[foundField]}`;
+                    addMessage('bot', response);
+                    addMessage('bot', `💡 Anything else you'd like to know about <strong>${med.name}</strong>? Just ask! (Or type "new" to start over with a different medicine.)`);
+                } else {
+                    addMessage('bot', ui.noInfo(text, med.name));
+                }
+                return;
+            }
+
+            addMessage('bot', `💬 I'm here to help. Please type a medicine name (Panadol, Augmentin, Centrum) or ask a follow‑up question.`);
+        }
+
+        // =================================================================
+        // 9. LANGUAGE SELECTION
+        // =================================================================
+        function selectLanguage(lang) {
+            currentLang = lang;
+            updateUILanguage(lang);
+            langOverlay.classList.add('hidden');
+
+            // Reset state
+            selectedMedicineKey = null;
+            awaitingFollowUp = false;
+            currentDashboardBubble = null;
+            clearChat();
+
+            // Re-initialize speech recognition with new language
+            if (recognition) {
+                recognition.lang = getSpeechLang(lang);
+            }
+
+            // Show welcome message in selected language
+            const ui = getUI(lang);
+            addMessage('bot', ui.welcome);
+
+            // Update active state on overlay options
+            langOptions.forEach(opt => {
+                opt.classList.toggle('active', opt.dataset.lang === lang);
+            });
+        }
+
+        // =================================================================
+        // 10. EVENT BINDINGS
+        // =================================================================
+
+        // Overlay language selection
+        langOptions.forEach(opt => {
+            opt.addEventListener('click', function() {
+                const lang = this.dataset.lang;
+                selectLanguage(lang);
+            });
+        });
+
+        // Header language buttons
+        langSelectorBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const lang = this.dataset.lang;
+                if (lang !== currentLang) {
+                    selectLanguage(lang);
+                }
+            });
+        });
+
+        // Send button
+        sendBtn.addEventListener('click', () => {
+            const text = userInput.value.trim();
+            if (!text) return;
+            userInput.value = '';
+            processUserMessage(text);
+        });
+
+        // Enter key
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                sendBtn.click();
+            }
+        });
+
+        // PDF download
+        downloadPdfBtn.addEventListener('click', downloadPDF);
+
+        // Mic button
+        micBtn.addEventListener('click', toggleRecording);
+
+        // =================================================================
+        // 11. INITIALIZATION
+        // =================================================================
+
+        // Default to English
+        selectLanguage('en');
+
+        // Init speech recognition
+        initSpeechRecognition();
+
+        console.log('✅ PharmaBot AI Multilingual initialized. Current language:', currentLang);
+    </script>
+</body>
+</html>
