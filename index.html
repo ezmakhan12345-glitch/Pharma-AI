@@ -7,8 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js">
     </script>
     <style>
-        /* ... (all previous styles remain the same, except the media query for .label-text) ... */
-        /* I'll include the full updated CSS below for completeness */
+        /* ====== All styles remain the same as before, except the PDF button and mobile rule ====== */
         * {
             margin: 0;
             padding: 0;
@@ -196,6 +195,7 @@
             color: #0a2e4b;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
+        /* PDF button – removed emoji, always show text */
         .pdf-btn {
             background: rgba(255, 255, 255, 0.15);
             border: 1px solid rgba(255, 255, 255, 0.25);
@@ -603,7 +603,7 @@
                 box-shadow: 0 0 0 0 rgba(230, 126, 34, 0);
             }
         }
-        /* ====== RESPONSIVE FIX: SHOW LANGUAGE LABELS ON MOBILE ====== */
+        /* ====== MOBILE RESPONSIVE – keep PDF label visible ====== */
         @media (max-width: 700px) {
             .dashboard-grid {
                 grid-template-columns: 1fr 1fr;
@@ -648,13 +648,20 @@
                 padding: 4px 8px;
                 font-size: 11px;
             }
-            /* Ensure label text is visible on all screens */
             .lang-selector .lang-btn .label-text {
-                display: inline !important; /* override any hidden */
+                display: inline !important;
             }
             .mic-status {
                 min-width: 60px;
                 font-size: 11px;
+            }
+            /* PDF button: keep label visible, adjust padding if needed */
+            .pdf-btn {
+                font-size: 12px;
+                padding: 4px 12px;
+            }
+            .pdf-btn span {
+                display: inline !important; /* ensure label always shows */
             }
         }
         @media (max-width: 480px) {
@@ -664,13 +671,9 @@
             .chat-header h1 {
                 font-size: 15px;
             }
-            .pdf-btn span {
-                display: none;
-            }
             .lang-box h2 {
                 font-size: 20px;
             }
-            /* On very small screens, we keep the label but might shorten */
             .lang-selector .lang-btn {
                 padding: 2px 6px;
                 font-size: 10px;
@@ -689,12 +692,19 @@
                 min-width: 50px;
                 font-size: 10px;
             }
+            .pdf-btn {
+                font-size: 11px;
+                padding: 3px 10px;
+            }
+            .pdf-btn span {
+                display: inline !important;
+            }
         }
     </style>
 </head>
 <body>
 
-    <!-- LANGUAGE SELECTOR OVERLAY (flags removed) -->
+    <!-- LANGUAGE SELECTOR OVERLAY -->
     <div id="langOverlay">
         <div class="lang-box">
             <h2>🌍 Choose Your Language</h2>
@@ -733,7 +743,8 @@
                         <span class="label-text">Sindhi</span>
                     </button>
                 </div>
-                <button class="pdf-btn" id="downloadPdfBtn">📄 <span id="pdfLabel">Download PDF</span></button>
+                <!-- PDF button: no emoji, just text -->
+                <button class="pdf-btn" id="downloadPdfBtn"><span id="pdfLabel">Download PDF</span></button>
             </div>
         </div>
 
@@ -752,7 +763,7 @@
     </div>
 
     <!-- ============================================================
-    JAVASCRIPT (same as before, unchanged)
+    JAVASCRIPT (unchanged – all functionality remains the same)
     ============================================================ -->
     <script>
         // =================================================================
@@ -1010,7 +1021,7 @@
             }
         };
 
-        // ----- MEDICINE DATA (shortened for brevity, same as before) -----
+        // ----- MEDICINE DATA (shortened for brevity) -----
         const MEDICINE_DATA = {
             panadol: {
                 en: {
@@ -1904,7 +1915,7 @@
                             recognition.interimResults = true;
                             recognition.maxAlternatives = 1;
                             recognition.lang = getSpeechLang(currentLang);
-                            // re-bind events (simplified for brevity)
+                            // re-bind events (simplified)
                             recognition.onstart = function() { /* ... */ };
                             recognition.onend = function() { /* ... */ };
                             recognition.onresult = function(event) { /* ... */ };
@@ -2146,7 +2157,7 @@
             initSpeechRecognition();
         }, 300);
 
-        console.log('✅ PharmaBot AI Multilingual initialized with fixed language labels on mobile.');
+        console.log('✅ PharmaBot AI Multilingual initialized with fixed PDF button text and language labels.');
     </script>
 </body>
 </html>
